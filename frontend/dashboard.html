@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  </head>
+  <body>
+    <div class="layout">
+
+      <!-- Sidebar (desktop) -->
+      <aside class="sidebar">
+        <div class="logo">
+          <i class="fa-solid fa-school"></i>
+          <span>AI School</span>
+        </div>
+        <ul class="menu">
+          <li class="active" onclick="location.href='dashboard.html'">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </li>
+          <li onclick="location.href='students.html'">
+            <i class="fa-solid fa-user-graduate"></i> Học sinh
+          </li>
+          <li onclick="location.href='violations.html'">
+            <i class="fa-solid fa-triangle-exclamation"></i> Vi phạm
+          </li>
+          <li onclick="location.href='stats.html'">
+            <i class="fa-solid fa-chart-bar"></i> Thống kê
+          </li>
+          <li onclick="location.href='plate.html'">
+            <i class="fa-solid fa-car"></i> Biển số xe
+          </li>
+          <li onclick="location.href='chatbot.html'">
+            <i class="fa-solid fa-robot"></i> Chatbot AI
+          </li>
+        </ul>
+        <button onclick="logout()" class="logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+        </button>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Dashboard</h1>
+            <p id="dateDisplay">Đang tải...</p>
+          </div>
+          <div class="user-box">
+            <i class="fa-solid fa-user-circle"></i>
+            <span id="usernameDisplay">---</span>
+            <span id="roleBadge" class="role-badge"></span>
+          </div>
+        </header>
+
+        <!-- Stats cards -->
+        <section class="stats">
+          <div class="stat-card green">
+            <div class="card-header">
+              <span>Tổng học sinh</span>
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <h2 id="statStudents">—</h2>
+          </div>
+          <div class="stat-card red">
+            <div class="card-header">
+              <span>Vi phạm hôm nay</span>
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 id="statToday">—</h2>
+          </div>
+          <div class="stat-card blue">
+            <div class="card-header">
+              <span>Vi phạm tuần này</span>
+              <i class="fa-solid fa-calendar-week"></i>
+            </div>
+            <h2 id="statWeek">—</h2>
+          </div>
+          <div class="stat-card amber">
+            <div class="card-header">
+              <span>Vi phạm tháng này</span>
+              <i class="fa-solid fa-calendar"></i>
+            </div>
+            <h2 id="statMonth">—</h2>
+          </div>
+        </section>
+
+        <!-- Top violators + Recent violations -->
+        <section class="content-row" style="gap:20px;display:grid;grid-template-columns:1fr 1.5fr;margin-bottom:24px">
+
+          <!-- Top vi phạm nhiều nhất -->
+          <div class="card">
+            <h2 style="margin-bottom:16px">
+              <i class="fa-solid fa-ranking-star" style="color:#f59e0b;margin-right:8px"></i>
+              Vi phạm nhiều nhất
+            </h2>
+            <div id="topViolators">
+              <div class="loading-placeholder">Đang tải...</div>
+            </div>
+          </div>
+
+          <!-- Vi phạm theo loại -->
+          <div class="card">
+            <h2 style="margin-bottom:16px">
+              <i class="fa-solid fa-chart-pie" style="color:#3b82f6;margin-right:8px"></i>
+              Phân loại vi phạm
+            </h2>
+            <div id="violationTypes">
+              <div class="loading-placeholder">Đang tải...</div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Recent violations table -->
+        <div class="table-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #f3f4f6">
+            <h2 style="margin:0;font-size:16px;font-weight:700">
+              <i class="fa-solid fa-clock-rotate-left" style="color:#6b7280;margin-right:8px"></i>
+              Vi phạm gần đây
+            </h2>
+            <a href="violations.html" style="font-size:13px;color:#2563eb;font-weight:600;text-decoration:none">
+              Xem tất cả →
+            </a>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Học sinh</th>
+                  <th>Lớp</th>
+                  <th>Vi phạm</th>
+                  <th>Ghi chú</th>
+                  <th>Thời gian</th>
+                </tr>
+              </thead>
+              <tbody id="recentViolations">
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div><!-- end layout -->
+
+    <!-- Mobile nav -->
+    <nav class="mobile-nav">
+      <a class="mobile-item active" href="dashboard.html">
+        <i class="fa-solid fa-chart-line"></i><span>Dashboard</span>
+      </a>
+      <a class="mobile-item" href="students.html">
+        <i class="fa-solid fa-user-graduate"></i><span>Học sinh</span>
+      </a>
+      <a class="mobile-item" href="violations.html">
+        <i class="fa-solid fa-triangle-exclamation"></i><span>Vi phạm</span>
+      </a>
+      <a class="mobile-item" href="chatbot.html">
+        <i class="fa-solid fa-robot"></i><span>Chatbot</span>
+      </a>
+      <span class="mobile-item" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i><span>Thoát</span>
+      </span>
+    </nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>
