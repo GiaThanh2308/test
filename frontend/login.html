@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Đăng nhập</title>
+
+    <link rel="stylesheet" href="css/style.css" />
+
+    <link rel="stylesheet" href="css/login.css" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <div class="login-page">
+      <div class="login-card">
+        <div class="login-logo">
+          <i class="fa-solid fa-school"></i>
+
+          <h1>AI School</h1>
+
+          <p>Hệ thống AI quản lý học sinh</p>
+        </div>
+
+        <div class="input-group">
+          <label>username</label>
+
+          <input type="text" id="username" placeholder="Nhập username" />
+        </div>
+
+        <div class="input-group">
+          <label>Mật khẩu</label>
+
+          <input type="password" id="password" placeholder="Nhập mật khẩu" />
+        </div>
+
+        <button onclick="login()">Đăng nhập</button>
+
+        <p id="loginMessage"></p>
+      </div>
+    </div>
+
+    <script src="js/login.js"></script>
+  </body>
+</html>

@@ -1,0 +1,431 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  background: #f4f7fb;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ======================
+   SIDEBAR
+====================== */
+
+.sidebar {
+  width: 250px;
+  background: #08132b;
+  color: white;
+  padding: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 40px;
+
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.menu {
+  list-style: none;
+}
+
+.menu li {
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  transition: 0.3s;
+}
+
+.menu li:hover {
+  background: #122042;
+}
+
+.menu .active {
+  background: #2563eb;
+}
+
+.menu li a {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  text-decoration: none;
+
+  color: inherit;
+
+  width: 100%;
+}
+
+/* ======================
+   MAIN
+====================== */
+
+.main {
+  margin-left: 250px;
+  flex: 1;
+  padding: 30px;
+}
+
+/* ======================
+   TOPBAR
+====================== */
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 25px;
+}
+
+.topbar h1 {
+  font-size: 34px;
+  margin-bottom: 6px;
+}
+
+.topbar p {
+  color: #6b7280;
+}
+
+.user-box {
+  font-size: 34px;
+  color: #2563eb;
+}
+
+/* ======================
+   BUTTON
+====================== */
+
+button {
+  border: none;
+
+  padding: 12px 18px;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  background: #2563eb;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+/* ======================
+   MOBILE NAV
+====================== */
+
+.mobile-nav {
+  display: none;
+}
+
+.mobile-item {
+  text-decoration: none;
+
+  color: #6b7280;
+}
+
+/* ======================
+   RESPONSIVE
+====================== */
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 15px;
+    padding-bottom: 100px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .topbar h1 {
+    font-size: 26px;
+  }
+
+  button {
+    width: 100%;
+
+    font-size: 16px;
+
+    padding: 14px;
+  }
+
+  .mobile-nav {
+    position: fixed;
+
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    height: 75px;
+
+    background: white;
+
+    display: flex;
+
+    justify-content: space-around;
+
+    align-items: center;
+
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+
+    z-index: 999;
+  }
+
+  .mobile-item {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 5px;
+
+    font-size: 13px;
+  }
+
+  .mobile-item i {
+    font-size: 22px;
+  }
+
+  .mobile-item.active {
+    color: #2563eb;
+  }
+}
+.empty-profile {
+  height: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  align-items: center;
+
+  color: #9ca3af;
+
+  gap: 15px;
+}
+
+.empty-profile i {
+  font-size: 70px;
+}
+
+.profile-card {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 15px;
+}
+
+.profile-avatar {
+  width: 100px;
+
+  height: 100px;
+
+  border-radius: 50%;
+
+  background: #2563eb;
+
+  color: white;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  font-size: 40px;
+
+  margin: auto;
+}
+
+.profile-card h2 {
+  text-align: center;
+}
+
+.violation-section {
+  margin-top: 20px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.violation-section select,
+.violation-section textarea {
+  padding: 12px;
+
+  border-radius: 12px;
+
+  border: 1px solid #d1d5db;
+
+  outline: none;
+}
+
+.violation-section textarea {
+  min-height: 100px;
+
+  resize: none;
+}
+
+.result-header {
+  margin-bottom: 20px;
+}
+
+#studentProfile {
+  min-height: 500px;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+.empty-profile {
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  align-items: center;
+
+  text-align: center;
+
+  color: #9ca3af;
+
+  gap: 15px;
+}
+
+.empty-profile i {
+  font-size: 70px;
+}
+
+.empty-profile p {
+  font-size: 20px;
+
+  font-weight: 600;
+}
+
+.profile-card {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 15px;
+}
+
+.profile-avatar {
+  width: 100px;
+
+  height: 100px;
+
+  border-radius: 50%;
+
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+
+  color: white;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  font-size: 40px;
+
+  margin: 0 auto;
+}
+
+.profile-card h2 {
+  text-align: center;
+
+  font-size: 28px;
+}
+
+.profile-card p {
+  background: #f9fafb;
+
+  padding: 12px;
+
+  border-radius: 12px;
+}
+
+.violation-section {
+  margin-top: 10px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.violation-section label {
+  font-weight: 600;
+}
+
+.violation-section select,
+.violation-section textarea {
+  padding: 12px;
+
+  border-radius: 12px;
+
+  border: 1px solid #d1d5db;
+
+  font-size: 15px;
+
+  outline: none;
+}
+
+.violation-section textarea {
+  min-height: 100px;
+
+  resize: none;
+}
+
+.violation-section button {
+  margin-top: 10px;
+}

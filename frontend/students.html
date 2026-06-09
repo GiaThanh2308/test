@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý học sinh</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/students.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="logo">
+          <i class="fa-solid fa-school"></i>
+          <span>AI School</span>
+        </div>
+        <ul class="menu">
+          <li onclick="location.href='index.html'"><i class="fa-solid fa-chart-line"></i> Dashboard</li>
+          <li class="active"><i class="fa-solid fa-user-graduate"></i> Học sinh</li>
+          <li onclick="location.href='index.html'"><i class="fa-solid fa-camera"></i> Nhận diện khuôn mặt</li>
+          <li onclick="location.href='plate.html'"><i class="fa-solid fa-car"></i> Nhận diện biển số</li>
+          <li onclick="location.href='chatbot.html'"><i class="fa-solid fa-robot"></i> Chatbot AI</li>
+        </ul>
+        <!-- FIX: thêm nút logout -->
+        <button onclick="logout()" style="margin:16px;width:calc(100% - 32px)">
+          <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+        </button>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Quản lý học sinh</h1>
+            <p>Danh sách và thông tin học sinh</p>
+          </div>
+          <button class="add-btn" onclick="openModal()">
+            <i class="fa-solid fa-plus"></i> Thêm học sinh
+          </button>
+        </header>
+
+        <section class="stats">
+          <div class="stat-card student">
+            <div class="card-header">
+              <span>Tổng học sinh</span>
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <!-- FIX: id="studentCount" đúng như trong students.js -->
+            <h2 id="studentCount">0</h2>
+          </div>
+          <div class="stat-card face">
+            <div class="card-header">
+              <span>Đã có khuôn mặt</span>
+              <i class="fa-solid fa-face-smile"></i>
+            </div>
+            <!-- FIX: thêm id bị thiếu -->
+            <h2 id="faceCount">0</h2>
+          </div>
+          <div class="stat-card plate">
+            <div class="card-header">
+              <span>Lớp học</span>
+              <i class="fa-solid fa-school"></i>
+            </div>
+            <!-- FIX: thêm id bị thiếu -->
+            <h2 id="classCount">0</h2>
+          </div>
+        </section>
+
+        <section class="search-section">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <!-- FIX: thêm oninput để tìm kiếm realtime -->
+            <input type="text" placeholder="Tìm kiếm học sinh..." id="searchInput" oninput="filterStudents()" />
+          </div>
+        </section>
+
+        <section class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã HS</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>SĐT</th>
+                <th>SĐT PH</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="studentTable"></tbody>
+          </table>
+        </section>
+      </main>
+
+      <nav class="mobile-nav">
+        <div class="mobile-item" onclick="location.href='index.html'">
+          <i class="fa-solid fa-camera"></i><span>Face</span>
+        </div>
+        <div class="mobile-item active">
+          <i class="fa-solid fa-user-graduate"></i><span>Students</span>
+        </div>
+        <div class="mobile-item" onclick="location.href='chatbot.html'">
+          <i class="fa-solid fa-robot"></i><span>AI</span>
+        </div>
+        <div class="mobile-item" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Modal thêm/sửa học sinh -->
+    <div class="modal" id="studentModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Thêm học sinh</h2>
+          <button class="close-btn" onclick="closeModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <input type="hidden" id="editingId" />
+        <div class="form-group">
+          <label>Mã học sinh *</label>
+          <input type="text" id="studentCode" />
+        </div>
+        <div class="form-group">
+          <label>Họ tên *</label>
+          <input type="text" id="fullName" />
+        </div>
+        <div class="form-group">
+          <label>Lớp *</label>
+          <input type="text" id="className" />
+        </div>
+        <div class="form-group">
+          <label>Face Label</label>
+          <input type="text" id="faceLabel" placeholder="Để trống nếu chưa có" />
+        </div>
+        <div class="form-group">
+          <label>Số điện thoại</label>
+          <input type="text" id="phone" />
+        </div>
+        <div class="form-group">
+          <label>SĐT phụ huynh</label>
+          <input type="text" id="parentPhone" />
+        </div>
+        <!-- FIX: đổi onclick từ createStudent() sang saveStudent() -->
+        <button class="save-btn" onclick="saveStudent()">Lưu học sinh</button>
+      </div>
+    </div>
+
+    <!-- FIX: thêm api.js TRƯỚC students.js -->
+    <script src="js/api.js"></script>
+    <script src="js/students.js"></script>
+  </body>
+</html>
