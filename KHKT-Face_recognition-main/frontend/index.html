@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhận diện — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+
+  <body>
+    <div class="layout">
+
+      <!-- Sidebar (desktop) — nội dung được renderNav() inject -->
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Nhận diện khuôn mặt</h1>
+            <p>Hệ thống AI quản lý học sinh</p>
+          </div>
+          <div class="user-box">
+            <i class="fa-solid fa-user-circle"></i>
+            <span id="usernameDisplay"></span>
+            <span id="roleBadge" class="role-badge"></span>
+          </div>
+        </header>
+
+        <section class="stats">
+        </section>
+
+        <section class="content-row">
+          <div class="camera-card">
+            <h2>Camera</h2>
+            <div class="camera-wrapper">
+              <div id="cameraPlaceholder">
+                <i class="fa-solid fa-camera"></i>
+                <p>Camera đang tắt</p>
+                <small>Nhấn nút "Bật Camera" để bắt đầu</small>
+              </div>
+              <video id="video" autoplay playsinline></video>
+            </div>
+            <div class="button-group">
+              <button onclick="startCamera()">Bật Camera</button>
+              <button onclick="captureAndRecognize()">Nhận diện</button>
+            </div>
+            <div class="upload-section">
+              <input type="file" id="imageInput" accept="image/*" />
+              <button onclick="uploadImage()">Upload ảnh</button>
+            </div>
+            <canvas id="canvas" width="640" height="480" style="display:none"></canvas>
+          </div>
+
+          <div class="result-card">
+            <div class="result-header">
+              <h2>Kết quả nhận diện</h2>
+            </div>
+            <div id="studentProfile">
+              <div class="empty-profile">
+                <i class="fa-solid fa-user"></i>
+                <p>Chưa nhận diện học sinh</p>
+                <small>AI sẽ hiển thị thông tin học sinh ở đây</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bảng vi phạm gần đây -->
+        <section class="table-card" style="margin-top:20px">
+          <h2 style="padding:16px 20px;margin:0;border-bottom:1px solid #f3f4f6;">
+            Vi phạm gần đây
+          </h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Học sinh</th>
+                <th>Lớp</th>
+                <th>Loại vi phạm</th>
+                <th>Thời gian</th>
+              </tr>
+            </thead>
+            <tbody id="recentViolations">
+              <tr>
+                <td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <!-- Mobile nav — nội dung được renderNav() inject -->
+    <nav class="mobile-nav" id="mobileNav"></nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/face.js"></script>
+    <script>
+      requireAuth();
+      renderNav("index");
+    </script>
+  </body>
+</html>
+
+
+

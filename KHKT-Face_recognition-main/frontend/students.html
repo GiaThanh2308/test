@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý học sinh — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/students.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  </head>
+
+  <body>
+    <div class="layout">
+
+      <!-- Sidebar (desktop) — nội dung được renderNav() inject -->
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Quản lý học sinh</h1>
+            <p>Danh sách và thông tin học sinh</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="user-box">
+              <i class="fa-solid fa-user-circle"></i>
+              <span id="usernameDisplay">---</span>
+              <span id="roleBadge" class="role-badge"></span>
+            </div>
+            <button class="add-btn" onclick="openModal()">
+              <i class="fa-solid fa-plus"></i> Thêm học sinh
+            </button>
+          </div>
+        </header>
+
+        <section class="stats">
+          <div class="stat-card student">
+            <div class="card-header">
+              <span>Tổng học sinh</span>
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <h2 id="studentCount">0</h2>
+          </div>
+          <div class="stat-card face">
+            <div class="card-header">
+              <span>Đã có khuôn mặt</span>
+              <i class="fa-solid fa-face-smile"></i>
+            </div>
+            <h2 id="faceCount">0</h2>
+          </div>
+          <div class="stat-card plate">
+            <div class="card-header">
+              <span>Lớp học</span>
+              <i class="fa-solid fa-school"></i>
+            </div>
+            <h2 id="classCount">0</h2>
+          </div>
+        </section>
+
+        <section class="search-section">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="text"
+              placeholder="Tìm kiếm học sinh..."
+              id="searchInput"
+              oninput="filterStudents()"
+            />
+          </div>
+        </section>
+
+        <section class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã HS</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>SĐT</th>
+                <th>Biển số xe</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="studentTable"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <!-- Mobile nav — nội dung được renderNav() inject -->
+    <nav class="mobile-nav" id="mobileNav"></nav>
+
+    <!-- Modal thêm/sửa học sinh -->
+    <div class="modal" id="studentModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Thêm học sinh</h2>
+          <button class="close-btn" onclick="closeModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <input type="hidden" id="editingId" />
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Mã học sinh</label>
+          <input type="text" id="studentCode" placeholder="Ví dụ: HS001" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Họ tên</label>
+          <input type="text" id="fullName" placeholder="Ví dụ: Nguyễn Văn A" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Lớp</label>
+          <input type="text" id="className" placeholder="Ví dụ: 10A1" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Face Label</label>
+          <input type="text" id="faceLabel" placeholder="Ví dụ: VanA_10A1" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Biển số xe</label>
+          <input type="text" id="plateNumber" placeholder="Ví dụ: 29B12345"  />
+        </div>
+        <div class="form-group">
+          <label>Số điện thoại</label>
+          <input type="text" id="phone" placeholder="Ví dụ: 0901234567" />
+        </div>
+        <button class="save-btn" onclick="saveStudent()">Lưu học sinh</button>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/students.js"></script>
+    <script>
+      requireAuth();
+      requireTeacher();
+      renderNav("students");
+    </script>
+  </body>
+</html>
