@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <title>Quét vi phạm — AI School</title>
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
       body { background: #0f172a; }
 
@@ -398,6 +398,20 @@
       }
 
       canvas { display: none; }
+      .student-avatar--photo {
+        background: transparent;
+        overflow: hidden;
+        padding: 0;
+      }
+      
+      .student-avatar--photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        display: block;
+      }
+      
     </style>
   </head>
   <body>
@@ -508,3 +522,8 @@
     <script src="js/scan.js"></script>
   </body>
 </html>
+
+
+
+================================================
+

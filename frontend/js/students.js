@@ -52,7 +52,7 @@ function renderTable(students) {
       <td><strong>${escapeHtml(s.full_name)}</strong></td>
       <td>${escapeHtml(s.class_name)}</td>
       <td style="font-size:13px">${escapeHtml(s.phone) || "—"}</td>
-      <td style="font-size:13px">${escapeHtml(s.parent_phone) || "—"}</td>
+      <td style="font-size:13px">${escapeHtml(s.plate_number) || "—"}</td>
       <td>
         <div class="action-btns">
           <button class="btn-sm edit-btn"   onclick="openEdit(${s.id})"><i class="fa-solid fa-pen"></i></button>
@@ -76,10 +76,11 @@ function filterStudents() {
 function openModal() {
   document.getElementById("modalTitle").textContent = "Thêm học sinh";
   document.getElementById("editingId").value = "";
-  ["studentCode","fullName","className","faceLabel","phone","parentPhone"].forEach(id => {
+  ["studentCode","fullName","className","faceLabel","phone","plateNumber"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("studentModal").classList.add("open");
+  document.body.classList.add("modal-open");
 }
 
 function openEdit(id) {
@@ -92,12 +93,13 @@ function openEdit(id) {
   document.getElementById("className").value          = s.class_name;
   document.getElementById("faceLabel").value          = s.face_label || "";
   document.getElementById("phone").value              = s.phone || "";
-  document.getElementById("parentPhone").value        = s.parent_phone || "";
+  document.getElementById("plateNumber").value        = s.plate_number || "";
   document.getElementById("studentModal").classList.add("open");
 }
 
 function closeModal() {
   document.getElementById("studentModal").classList.remove("open");
+  document.body.classList.remove("modal-open");
 }
 
 async function saveStudent() {
@@ -108,7 +110,7 @@ async function saveStudent() {
     class_name:   document.getElementById("className").value.trim(),
     face_label:   document.getElementById("faceLabel").value.trim() || null,
     phone:        document.getElementById("phone").value.trim(),
-    parent_phone: document.getElementById("parentPhone").value.trim(),
+    plate_number: document.getElementById("plateNumber").value.trim(),
   };
 
   if (!body.student_code || !body.full_name || !body.class_name) {
@@ -143,3 +145,5 @@ async function deleteStudent(id) {
 }
 
 loadStudents();
+
+

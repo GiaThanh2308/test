@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Annotated
+from typing import Optional
+from urllib.parse import quote
 import numpy as np
 import cv2
 import os
@@ -19,8 +22,7 @@ load_dotenv()
 from backend.database.db import engine, SessionLocal
 from backend.database.models import Base, Student, User, Violation
 from backend.schemas.student import (
-    StudentCreate, StudentUpdate, ViolationCreate,
-    ChatMessage, ChatRequest
+    StudentCreate, StudentUpdate, ViolationCreate, ChatRequest
 )
 from backend.auth import (
     hash_password, verify_password,
@@ -37,16 +39,18 @@ async def lifespan(app: FastAPI):
             system.database.known_encodings,
             system.database.known_names
         )
-        print("✅ FAISS loaded")
+        if system.faiss_index.index is not None:
+            print("✅ FAISS loaded")
+        if system.database.face_metadata:
+            print("✅ Model loaded")
     else:
         print("⚠️ Database khuôn mặt đang trống")
-    print("✅ Model loaded")
     yield  # app chạy ở đây
     # shutdown logic nếu cần đặt sau yield
 
 app = FastAPI(title="AI School API", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5501", "http://localhost:5501"])
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5500,http://localhost:5501,http://127.0.0.1:5500,http://127.0.0.1:5501").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,7 +62,30 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RESOURCE_DIR = os.getenv("RESOURCE_DIR", os.path.join(PROJECT_ROOT, "resources"))
+FACE_DATABASE_PATH = os.path.abspath(
+    os.getenv("FACE_DATABASE_PATH", os.path.join(PROJECT_ROOT, "face_database.pkl"))
+)
+if not FACE_DATABASE_PATH:
+    FACE_DATABASE_PATH = os.path.abspath(
+        os.getenv("FACE_DATABASE_PATH", os.path.join(RESOURCE_DIR, "face_database.pkl")))
+KNOWN_FACES_DIR = os.path.abspath(
+    os.getenv("KNOWN_FACES_DIR", os.path.join(RESOURCE_DIR, "known_faces"))
+)
+FACE_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+
+if os.path.isdir(KNOWN_FACES_DIR):
+    app.mount(
+        "/face-images",
+        StaticFiles(directory=KNOWN_FACES_DIR),
+        name="face-images",
+    )
+
 system = AdvancedFaceRecognitionSystem()
+if os.path.exists(FACE_DATABASE_PATH):
+    system.database.database_path = FACE_DATABASE_PATH
+    system.database.load_database()
 
 _ocr_reader = None
 
@@ -79,7 +106,69 @@ def get_db():
         db.close()
 
 
+def _first_face_image(folder_path: str) -> Optional[str]:
+    try:
+        filenames = sorted(os.listdir(folder_path))
+    except OSError:
+        return None
+
+    for filename in filenames:
+        if filename.lower().endswith(FACE_IMAGE_EXTENSIONS):
+            return os.path.join(folder_path, filename)
+    return None
+
+
+def get_face_image_path(face_label: Optional[str]) -> Optional[str]:
+    label = (face_label or "").strip()
+    if not label or not os.path.isdir(KNOWN_FACES_DIR):
+        return None
+
+    person_name = None
+    class_name = None
+    if "_" in label:
+        person_name, class_name = label.rsplit("_", 1)
+
+    label_key = label.casefold()
+    person_key = person_name.casefold() if person_name else None
+    class_key = class_name.casefold() if class_name else None
+    candidate_dirs: list[str] = []
+
+    for root, _, _ in os.walk(KNOWN_FACES_DIR):
+        folder_key = os.path.basename(root).casefold()
+
+        if person_key and class_key:
+            parent_key = os.path.basename(os.path.dirname(root)).casefold()
+            if folder_key == person_key and parent_key == class_key:
+                candidate_dirs.insert(0, root)
+                continue
+
+        if folder_key == label_key or (person_key and folder_key == person_key):
+            candidate_dirs.append(root)
+
+    for folder_path in candidate_dirs:
+        image_path = _first_face_image(folder_path)
+        if image_path:
+            return image_path
+
+    return None
+
+
 # ─── FACE RECOGNITION ────────────────────────────────────────
+
+def get_face_image_url(face_label: Optional[str]) -> Optional[str]:
+    label = (face_label or "").strip()
+    if not get_face_image_path(label):
+        return None
+    return f"/face-image/{quote(label, safe='')}"
+
+
+@app.get("/face-image/{face_label}")
+def serve_face_image(face_label: str):
+    image_path = get_face_image_path(face_label)
+    if not image_path:
+        raise HTTPException(status_code=404, detail="Không tìm thấy ảnh khuôn mặt")
+    return FileResponse(image_path)
+
 
 @app.post("/recognize-face")
 async def recognize_face(
@@ -119,8 +208,9 @@ async def recognize_face(
                 "student_code": student.student_code,
                 "full_name":    student.full_name,
                 "class_name":   student.class_name,
+                "face_label":   student.face_label,
+                "face_image_url": get_face_image_url(student.face_label),
                 "phone":        student.phone,
-                "parent_phone": student.parent_phone,
                 "plate_number": student.plate_number,
                 "score":        float(score)
             })
@@ -203,7 +293,6 @@ async def recognize_plate(
             "full_name":    student.full_name,
             "class_name":   student.class_name,
             "phone":        student.phone,
-            "parent_phone": student.parent_phone,
             "plate_number": student.plate_number,
         }
 
@@ -231,8 +320,8 @@ def get_students(
             "full_name":    s.full_name,
             "class_name":   s.class_name,
             "phone":        s.phone,
-            "parent_phone": s.parent_phone,
             "face_label":   s.face_label,
+            "face_image_url": get_face_image_url(s.face_label),
             "plate_number": s.plate_number,
         }
         for s in students
@@ -254,8 +343,8 @@ def get_student(
         "full_name":    student.full_name,
         "class_name":   student.class_name,
         "phone":        student.phone,
-        "parent_phone": student.parent_phone,
         "face_label":   student.face_label,
+        "face_image_url": get_face_image_url(student.face_label),
         "plate_number": student.plate_number,
     }
 
@@ -283,7 +372,6 @@ def create_student(
         class_name   = student.class_name,
         face_label   = face_label,
         phone        = student.phone,
-        parent_phone = student.parent_phone,
         plate_number = student.plate_number,
     )
     db.add(new_student)
@@ -307,7 +395,6 @@ def update_student(
     if student.full_name    is not None: db_student.full_name    = student.full_name
     if student.class_name   is not None: db_student.class_name   = student.class_name
     if student.phone        is not None: db_student.phone        = student.phone
-    if student.parent_phone is not None: db_student.parent_phone = student.parent_phone
     if student.plate_number is not None: db_student.plate_number = student.plate_number
 
     if student.face_label is not None:
@@ -511,7 +598,9 @@ def create_user(
     return {"message": "User created"}
 
 
-# ─── CHATBOT (Gemini) ─────────────────────────────────────────
+# ─── CHATBOT (Groq) ───────────────────────────────────────────
+
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 @app.post("/chatbot")
 async def chatbot(
@@ -519,9 +608,9 @@ async def chatbot(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY chưa được cấu hình trong file .env")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY chưa được cấu hình trong file .env")
 
     now         = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -582,40 +671,44 @@ VI PHẠM GẦN ĐÂY NHẤT:
 
 === HƯỚNG DẪN ===
 - Chỉ trả lời về quản lý học sinh, vi phạm, thống kê trường học
-- Dùng số liệu thực tế ở trên, không bịa đặt
-- Tiếng Việt, ngắn gọn, chuyên nghiệp
-- Dùng danh sách khi liệt kê nhiều mục
-- Nếu câu hỏi nằm ngoài phạm vi, lịch sự từ chối"""
+- Dùng số liệu thực tế ở trên, không bịa đặt, không suy diễn thêm
+- Tiếng Việt, ngắn gọn, đi thẳng vào trọng tâm
+- Không lặp lại câu hỏi, không mở đầu kiểu "Chào bạn", "Dựa trên dữ liệu trên..."
+- Không thêm lời khuyên, nhận xét, hay diễn giải ngoài những gì được hỏi
+- Dùng danh sách gạch đầu dòng khi liệt kê nhiều mục, không viết thành đoạn văn dài
+- Nếu câu hỏi nằm ngoài phạm vi, từ chối trong 1 câu, không giải thích dài dòng"""
 
-    gemini_contents = [
+    groq_messages = [{"role": "system", "content": system_prompt}] + [
         {
-            "role": "model" if msg.role == "assistant" else "user",
-            "parts": [{"text": msg.content}]
+            "role": "assistant" if msg.role == "assistant" else "user",
+            "content": msg.content,
         }
         for msg in req.messages
     ]
 
-    gemini_url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.0-flash:generateContent?key={api_key}"
-    )
+    groq_url = "https://api.groq.com/openai/v1/chat/completions"
 
     payload = {
-        "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": gemini_contents,
-        "generationConfig": {"maxOutputTokens": 1024, "temperature": 0.7},
+        "model": GROQ_MODEL,
+        "messages": groq_messages,
+        "max_tokens": 512,
+        "temperature": 0.3,
     }
 
+    headers = {"Authorization": f"Bearer {api_key}"}
+
     async with httpx.AsyncClient() as client:
-        response = await client.post(gemini_url, json=payload, timeout=30.0)
+        response = await client.post(groq_url, json=payload, headers=headers, timeout=30.0)
 
     if response.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Gemini API lỗi {response.status_code}: {response.text[:300]}")
+        raise HTTPException(status_code=502, detail=f"Groq API lỗi {response.status_code}: {response.text[:300]}")
 
     data = response.json()
     try:
-        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        reply = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError):
-        raise HTTPException(status_code=502, detail="Gemini trả về response không hợp lệ")
+        raise HTTPException(status_code=502, detail="Groq trả về response không hợp lệ")
 
     return {"reply": reply}
+
+

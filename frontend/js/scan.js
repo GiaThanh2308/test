@@ -180,6 +180,31 @@ function escHtml(s) {
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+// ── Helper: build full URL cho face image ─────────────────────
+function apiAssetUrl(path) {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+// ── Helper: render avatar (ảnh thật hoặc icon dự phòng) ───────
+function renderStudentAvatar(student) {
+  const imageUrl = apiAssetUrl(student.face_image_url);
+  if (!imageUrl) {
+    // Không có ảnh → hiện icon mặc định
+    return `<div class="student-avatar"><i class="fa-solid fa-user-graduate"></i></div>`;
+  }
+  // Có ảnh → hiện ảnh thật, fallback về icon nếu ảnh lỗi
+  return `
+    <div class="student-avatar student-avatar--photo">
+      <img
+        src="${escHtml(imageUrl)}"
+        alt="${escHtml(student.full_name)}"
+        onerror="this.parentElement.innerHTML='<i class=\\'fa-solid fa-user-graduate\\'></i>'; this.parentElement.classList.remove('student-avatar--photo');"
+      />
+    </div>`;
+}
+
 // ── Render face result ────────────────────────────────────────
 function renderFaceResult(data) {
   const faces = data.faces;
@@ -204,7 +229,7 @@ function renderFaceResult(data) {
   document.getElementById("resultArea").innerHTML = `
     <div class="student-card">
       <div class="student-card-top face-top">
-        <div class="student-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+        ${renderStudentAvatar(s)}
         <div>
           <div class="student-name">${escHtml(s.full_name)}</div>
           <div class="student-meta">${escHtml(s.class_name)} · ${escHtml(s.student_code)}</div>
@@ -218,10 +243,6 @@ function renderFaceResult(data) {
         <div class="info-row">
           <span class="info-label">SĐT học sinh</span>
           <span class="info-value">${escHtml(s.phone)}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">SĐT phụ huynh</span>
-          <span class="info-value">${escHtml(s.parent_phone)}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Biển số xe</span>
@@ -240,7 +261,7 @@ function renderFaceResult(data) {
           <option>Gây mất trật tự</option>
           <option>Khác</option>
         </select>
-        <textarea id="violationNote" placeholder="Ghi chú thêm (không bắt buộc)..."></textarea>
+        <textarea id="violationNote" placeholder="Ghi chú thêm (nếu có)..."></textarea>
         <button class="btn-save-violation" onclick="saveViolation()">
           <i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm
         </button>
@@ -250,53 +271,46 @@ function renderFaceResult(data) {
 
 // ── Render plate result ───────────────────────────────────────
 function renderPlateResult(data) {
-  if (!data.plate_number && !data.raw_text) {
-    document.getElementById("resultArea").innerHTML = `
-      <div class="result-empty">
-        <i class="fa-solid fa-car-side" style="color:#f59e0b"></i>
-        <p>Không đọc được biển số</p>
-        <small>Thử lại với ảnh rõ hơn, đủ ánh sáng</small>
-      </div>`;
-    return;
-  }
+  const plateDisplay = data.plate_number || data.raw_text || "???";
+  const conf = data.confidence ? `${Math.round(data.confidence * 100)}%` : null;
+  const s    = data.student;
 
-  const plateDisplay = data.plate_number || data.raw_text;
-  const conf = data.confidence ? `${Math.round(data.confidence * 100)}%` : "";
-
-  // Có tìm thấy học sinh không?
-  if (data.student) {
-    const s = data.student;
+  if (s) {
     currentStudentId = s.id;
-
     document.getElementById("resultArea").innerHTML = `
-      <div class="plate-result-card">
-        <div class="plate-number-display">
-          <div class="plate-number-text">${escHtml(plateDisplay)}</div>
-          <div class="plate-number-label">
-            <i class="fa-solid fa-car"></i> Biển số xe
-            ${conf ? `· Độ tin cậy: ${conf}` : ""}
+      <div class="student-card">
+        <div class="student-card-top plate-top">
+          <div class="student-avatar"><i class="fa-solid fa-car"></i></div>
+          <div>
+            <div class="student-name" style="font-size:22px;letter-spacing:3px;font-family:'Courier New',monospace">${escHtml(plateDisplay)}</div>
+            <div class="student-meta">Biển số xe ${conf ? `· Độ tin cậy: ${conf}` : ""}</div>
           </div>
         </div>
 
-        <div class="student-card-top plate-top">
-          <div class="student-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+        <div class="student-card-top" style="background:#1e293b;padding:16px 20px;gap:14px;border-bottom:1px solid #334155">
+          ${renderStudentAvatar(s)}
           <div>
-            <div class="student-name">${escHtml(s.full_name)}</div>
+            <div class="student-name" style="color:#e2e8f0">${escHtml(s.full_name)}</div>
             <div class="student-meta">${escHtml(s.class_name)} · ${escHtml(s.student_code)}</div>
-          </div>
-          <div class="confidence-pill" style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.5);color:white">
-            Tìm thấy
           </div>
         </div>
 
         <div class="student-info">
           <div class="info-row">
+            <span class="info-label">Mã học sinh</span>
+            <span class="info-value">${escHtml(s.student_code)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Lớp</span>
+            <span class="info-value">${escHtml(s.class_name)}</span>
+          </div>
+          <div class="info-row">
             <span class="info-label">SĐT học sinh</span>
             <span class="info-value">${escHtml(s.phone)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">SĐT phụ huynh</span>
-            <span class="info-value">${escHtml(s.parent_phone)}</span>
+            <span class="info-label">Biển số xe</span>
+            <span class="info-value">${escHtml(s.plate_number)}</span>
           </div>
         </div>
 
@@ -311,7 +325,7 @@ function renderPlateResult(data) {
             <option>Gây mất trật tự</option>
             <option>Khác</option>
           </select>
-          <textarea id="violationNote" placeholder="Ghi chú thêm (không bắt buộc)..."></textarea>
+          <textarea id="violationNote" placeholder="Ghi chú thêm (nếu có)..."></textarea>
           <button class="btn-save-violation" onclick="saveViolation()">
             <i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm
           </button>

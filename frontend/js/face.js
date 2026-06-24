@@ -1,4 +1,4 @@
-// FIX: dùng requireAuth() từ api.js
+     // FIX: dùng requireAuth() từ api.js
 requireAuth();
 document.getElementById("usernameDisplay").textContent = localStorage.getItem("username");
 
@@ -64,6 +64,29 @@ function escHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function apiAssetUrl(path) {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function renderProfileAvatar(student) {
+  const imageUrl = apiAssetUrl(student.face_image_url);
+  if (!imageUrl) {
+    return `<div class="profile-avatar"><i class="fa-solid fa-user-graduate"></i></div>`;
+  }
+
+  return `
+    <div class="profile-avatar has-photo">
+      <i class="fa-solid fa-user-graduate"></i>
+      <img
+        src="${escHtml(imageUrl)}"
+        alt="${escHtml(student.full_name)}"
+        onerror="console.error('Failed image:', this.src); console.error('Natural size:', this.naturalWidth, this.naturalHeight);"
+      />
+    </div>`;
 }
 
 // ─── Camera ──────────────────────────────────────────────────
@@ -163,7 +186,6 @@ function renderStudentProfile(data) {
       <div class="empty-profile">
         <i class="fa-solid fa-user-question"></i>
         <p>Khuôn mặt chưa có hồ sơ</p>
-        <small>Độ khớp: ${accuracy}%</small>
       </div>`;
     return;
   }
@@ -171,16 +193,16 @@ function renderStudentProfile(data) {
   // FIX: escape dữ liệu từ server khi render vào innerHTML
   profile.innerHTML = `
     <div class="profile-card">
-      <div class="profile-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+      ${renderProfileAvatar(s)}
       <h2>${escHtml(s.full_name)}</h2>
 
       <div class="profile-info">
-        <div class="profile-info-row"><span>Mã học sinh</span><span>${escHtml(s.student_code)}</span></div>
-        <div class="profile-info-row"><span>Lớp</span><span>${escHtml(s.class_name)}</span></div>
-        <div class="profile-info-row"><span>SĐT</span><span>${escHtml(s.phone) || "—"}</span></div>
-        <div class="profile-info-row"><span>SĐT phụ huynh</span><span>${escHtml(s.parent_phone) || "—"}</span></div>
+        <div class="profile-info-row"><span>Mã học sinh: </span><span>${escHtml(s.student_code)}</span></div>
+        <div class="profile-info-row"><span>Lớp: </span><span>${escHtml(s.class_name)}</span></div>
+        <div class="profile-info-row"><span>SĐT: </span><span>${escHtml(s.phone) || "—"}</span></div>
+        <div class="profile-info-row"><span>Biển số xe: </span><span>${escHtml(s.plate_number) || "—"}</span></div>
         <div class="profile-info-row">
-          <span>Độ chính xác</span>
+          <span>Độ chính xác:</span>  
           <span style="color:${accColor};font-weight:700">${accuracy}%</span>
         </div>
         <div class="accuracy-bar">
@@ -266,3 +288,5 @@ function showToast(msg, isError = false) {
 // Init
 loadStats();
 loadRecentViolations();
+
+

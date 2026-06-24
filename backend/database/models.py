@@ -48,3 +48,5 @@ class Violation(Base):
     created_at     = Column(DateTime(timezone=True), default=utcnow)
 
     student = relationship("Student", back_populates="violations")
+
+

@@ -159,57 +159,84 @@ class AdvancedFaceRecognitionSystem:
     def build_database_from_images(self, main_dir="known_faces"):
         print("🧠 Đang tạo database khuôn mặt từ ảnh...")
         people = []
-        for class_name in os.listdir(main_dir):
-            class_path = os.path.join(main_dir, class_name)
-            if not os.path.isdir(class_path):
+
+        for root, dirs, files in os.walk(main_dir):
+
+            image_files = [
+                f for f in files
+                if f.lower().endswith((".jpg", ".jpeg", ".png"))
+            ]
+
+            # Chỉ xử lý các thư mục thực sự chứa ảnh
+            if not image_files:
                 continue
 
-            for person_name in os.listdir(class_path):
-                folder = os.path.join(class_path, person_name)
-                if not os.path.isdir(folder):
+            person_name = os.path.basename(root)
+
+            # Ví dụ:
+            # root = known_faces/Khối 10/10A1/Nguyễn Văn A
+            # class_name = 10A1
+            class_name = os.path.basename(os.path.dirname(root))
+
+            label_name = f"{person_name}_{class_name}"
+            encodings = []
+
+            print(f"🔍 Đang xử lý: {label_name}")
+
+            for filename in image_files:
+                img_path = os.path.join(root, filename)
+
+                img = cv2.imdecode(
+                    np.fromfile(img_path, dtype=np.uint8),
+                    cv2.IMREAD_COLOR
+                )
+
+                if img is None:
+                    print("❌ Không đọc được ảnh:", img_path)
                     continue
 
-                label_name = f"{person_name}_{class_name}"
-                encodings  = []
+                faces = self.app.get(img)
 
-                for filename in os.listdir(folder):
-                    if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
-                        continue
-                    img_path = os.path.join(folder, filename)
-                    img = cv2.imdecode(np.fromfile(img_path, dtype=np.uint8), cv2.IMREAD_COLOR)
-                    if img is None:
-                        print("❌ Không đọc được ảnh:", img_path)
-                        continue
-                    faces = self.app.get(img)
-                    if len(faces) == 0:
-                        print("⚠️ Không phát hiện khuôn mặt:", img_path)
-                        continue
-                    for face in faces:
-                        encodings.append(face.embedding)
+                if len(faces) == 0:
+                    print("⚠️ Không phát hiện khuôn mặt:", img_path)
+                    continue
 
-                if encodings:
-                    mean_encoding  = np.mean(encodings, axis=0)
-                    mean_encoding /= np.linalg.norm(mean_encoding) + 1e-10
-                    people.append((label_name, mean_encoding, encodings))
-                    print(f"✅ {label_name}: {len(encodings)} ảnh → lưu 1 vector")
-                else:
-                    print(f"❌ {label_name}: không có encoding hợp lệ")
+                for face in faces:
+                    encodings.append(face.embedding)
+
+            if encodings:
+                mean_encoding = np.mean(encodings, axis=0)
+                mean_encoding /= (np.linalg.norm(mean_encoding) + 1e-10)
+
+                people.append(
+                    (label_name, mean_encoding.astype(np.float32))
+                )
+
+                print(
+                    f"✅ {label_name}: {len(encodings)} ảnh → lưu 1 vector"
+                )
+            else:
+                print(
+                    f"❌ {label_name}: không có encoding hợp lệ"
+                )
 
         if people:
-            self.database.known_names     = []
+            self.database.known_names = []
             self.database.known_encodings = []
-            self.database.face_metadata   = {}
-            for name, vec, raw_encs in people:
+
+            for name, vec in people:
                 self.database.known_names.append(name)
-                self.database.known_encodings.append(vec.astype(np.float32))
-                self.database.face_metadata[name] = {
-                    "embeddings": [e.astype(np.float32) for e in raw_encs],
-                    "added":      datetime.now().isoformat(),
-                    "num_images": len(raw_encs)
-                }
+                self.database.known_encodings.append(vec)
+
             self.database.save_database()
+
             print(f"💾 Đã lưu database: {len(people)} người")
-            self.faiss_index.build_index(self.database.known_encodings, self.database.known_names)
+
+            self.faiss_index.build_index(
+                self.database.known_encodings,
+                self.database.known_names
+            )
+
         else:
             print("❌ Không có dữ liệu khuôn mặt nào được tạo!")
 
@@ -235,3 +262,5 @@ class AdvancedFaceRecognitionSystem:
             cv2.putText(frame, label, (bbox[0], bbox[1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         return frame
+
+

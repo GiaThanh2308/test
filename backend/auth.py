@@ -76,3 +76,5 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền này")
     return current_user
+
+

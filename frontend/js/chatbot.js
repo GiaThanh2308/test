@@ -55,3 +55,5 @@ function appendMsg(text, cls, id = "") {
   box.scrollTop = box.scrollHeight;
   return el;
 }
+
+

@@ -3,44 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quản lý học sinh</title>
+    <title>Quản lý học sinh — AI School</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/students.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   </head>
 
   <body>
     <div class="layout">
-      <aside class="sidebar">
-        <div class="logo">
-          <i class="fa-solid fa-school"></i>
-          <span>AI School</span>
-        </div>
-        <ul class="menu">
-          <li onclick="location.href = 'index.html'">
-            <i class="fa-solid fa-chart-line"></i> Dashboard
-          </li>
-          <li class="active">
-            <i class="fa-solid fa-user-graduate"></i> Học sinh
-          </li>
-          <li onclick="location.href = 'index.html'">
-            <i class="fa-solid fa-camera"></i> Nhận diện khuôn mặt
-          </li>
-          <li onclick="location.href = 'chatbot.html'">
-            <i class="fa-solid fa-robot"></i> Chatbot AI
-          </li>
-        </ul>
-        <!-- FIX: thêm nút logout -->
-        <button
-          onclick="logout()"
-          style="margin: 16px; width: calc(100% - 32px)"
-        >
-          <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-        </button>
-      </aside>
+
+      <!-- Sidebar (desktop) — nội dung được renderNav() inject -->
+      <aside class="sidebar" id="sidebar"></aside>
 
       <main class="main">
         <header class="topbar">
@@ -48,9 +21,16 @@
             <h1>Quản lý học sinh</h1>
             <p>Danh sách và thông tin học sinh</p>
           </div>
-          <button class="add-btn" onclick="openModal()">
-            <i class="fa-solid fa-plus"></i> Thêm học sinh
-          </button>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="user-box">
+              <i class="fa-solid fa-user-circle"></i>
+              <span id="usernameDisplay">---</span>
+              <span id="roleBadge" class="role-badge"></span>
+            </div>
+            <button class="add-btn" onclick="openModal()">
+              <i class="fa-solid fa-plus"></i> Thêm học sinh
+            </button>
+          </div>
         </header>
 
         <section class="stats">
@@ -59,7 +39,6 @@
               <span>Tổng học sinh</span>
               <i class="fa-solid fa-user-graduate"></i>
             </div>
-            <!-- FIX: id="studentCount" đúng như trong students.js -->
             <h2 id="studentCount">0</h2>
           </div>
           <div class="stat-card face">
@@ -67,7 +46,6 @@
               <span>Đã có khuôn mặt</span>
               <i class="fa-solid fa-face-smile"></i>
             </div>
-            <!-- FIX: thêm id bị thiếu -->
             <h2 id="faceCount">0</h2>
           </div>
           <div class="stat-card plate">
@@ -75,7 +53,6 @@
               <span>Lớp học</span>
               <i class="fa-solid fa-school"></i>
             </div>
-            <!-- FIX: thêm id bị thiếu -->
             <h2 id="classCount">0</h2>
           </div>
         </section>
@@ -83,7 +60,6 @@
         <section class="search-section">
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <!-- FIX: thêm oninput để tìm kiếm realtime -->
             <input
               type="text"
               placeholder="Tìm kiếm học sinh..."
@@ -102,7 +78,7 @@
                 <th>Họ tên</th>
                 <th>Lớp</th>
                 <th>SĐT</th>
-                <th>SĐT PH</th>
+                <th>Biển số xe</th>
                 <th>Hành động</th>
               </tr>
             </thead>
@@ -110,22 +86,10 @@
           </table>
         </section>
       </main>
-
-      <nav class="mobile-nav">
-        <div class="mobile-item" onclick="location.href = 'index.html'">
-          <i class="fa-solid fa-camera"></i><span>Face</span>
-        </div>
-        <div class="mobile-item active">
-          <i class="fa-solid fa-user-graduate"></i><span>Students</span>
-        </div>
-        <div class="mobile-item" onclick="location.href = 'chatbot.html'">
-          <i class="fa-solid fa-robot"></i><span>AI</span>
-        </div>
-        <div class="mobile-item" onclick="logout()">
-          <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
-        </div>
-      </nav>
     </div>
+
+    <!-- Mobile nav — nội dung được renderNav() inject -->
+    <nav class="mobile-nav" id="mobileNav"></nav>
 
     <!-- Modal thêm/sửa học sinh -->
     <div class="modal" id="studentModal">
@@ -138,40 +102,41 @@
         </div>
         <input type="hidden" id="editingId" />
         <div class="form-group">
-          <label>Mã học sinh *</label>
-          <input type="text" id="studentCode" />
+          <label><span style="color: red;">*</span> Mã học sinh</label>
+          <input type="text" id="studentCode" placeholder="Ví dụ: HS001" />
         </div>
         <div class="form-group">
-          <label>Họ tên *</label>
-          <input type="text" id="fullName" />
+          <label><span style="color: red;">*</span> Họ tên</label>
+          <input type="text" id="fullName" placeholder="Ví dụ: Nguyễn Văn A" />
         </div>
         <div class="form-group">
-          <label>Lớp *</label>
-          <input type="text" id="className" />
+          <label><span style="color: red;">*</span> Lớp</label>
+          <input type="text" id="className" placeholder="Ví dụ: 10A1" />
         </div>
         <div class="form-group">
-          <label>Face Label</label>
-          <input
-            type="text"
-            id="faceLabel"
-            placeholder="Để trống nếu chưa có"
-          />
+          <label><span style="color: red;">*</span> Face Label</label>
+          <input type="text" id="faceLabel" placeholder="Ví dụ: VanA_10A1" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Biển số xe</label>
+          <input type="text" id="plateNumber" placeholder="Ví dụ: 29B12345"  />
         </div>
         <div class="form-group">
           <label>Số điện thoại</label>
-          <input type="text" id="phone" />
+          <input type="text" id="phone" placeholder="Ví dụ: 0901234567" />
         </div>
-        <div class="form-group">
-          <label>SĐT phụ huynh</label>
-          <input type="text" id="parentPhone" />
-        </div>
-        <!-- FIX: đổi onclick từ createStudent() sang saveStudent() -->
         <button class="save-btn" onclick="saveStudent()">Lưu học sinh</button>
       </div>
     </div>
 
-    <!-- FIX: thêm api.js TRƯỚC students.js -->
     <script src="js/api.js"></script>
     <script src="js/students.js"></script>
+    <script>
+      requireAuth();
+      requireTeacher();
+      renderNav("students");
+    </script>
   </body>
 </html>
+
+

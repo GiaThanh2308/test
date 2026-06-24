@@ -1,25 +1,35 @@
 // login.js — Đăng nhập và redirect đúng trang theo role
+// Role: "admin" / "teacher" → dashboard.html
+//       "student"           → index.html (nhận diện)
 
 // Nếu đã đăng nhập rồi thì redirect luôn
 const _existingToken = localStorage.getItem("access_token");
 const _existingRole  = localStorage.getItem("role");
 if (_existingToken) {
-  window.location.href = _existingRole === "security" ? "scan.html" : "dashboard.html";
+  redirectByRole(_existingRole);
+}
+
+function redirectByRole(role) {
+  if (role === "student") {
+    window.location.href = "index.html";
+  } else {
+    window.location.href = "dashboard.html";
+  }
 }
 
 async function login() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
   const msg      = document.getElementById("loginMessage");
-  const btn      = document.getElementById("loginBtn");
+  const btn      = document.querySelector("button");
 
   if (!username || !password) {
     msg.textContent = "Vui lòng nhập đầy đủ thông tin";
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = "Đang đăng nhập...";
+  btn.disabled    = true;
+  btn.innerHTML   = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
   msg.textContent = "";
 
   try {
@@ -40,24 +50,14 @@ async function login() {
     localStorage.setItem("username",     data.username);
     localStorage.setItem("role",         data.role);
 
-    // Redirect đúng trang theo role
-    if (data.role === "security") {
-      window.location.href = "scan.html";       // đội an ninh → trang quét
-    } else {
-      window.location.href = "dashboard.html";  // teacher/admin → dashboard
-    }
+    redirectByRole(data.role);
 
   } catch {
     msg.textContent = "Không kết nối được server";
   } finally {
-    btn.disabled = false;
-    btn.textContent = "Đăng nhập";
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
   }
 }
 
-// Cho phép nhấn Enter để đăng nhập
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("password")?.addEventListener("keydown", e => {
-    if (e.key === "Enter") login();
-  });
-});
+

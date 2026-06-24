@@ -46,3 +46,4 @@ class FaceDatabase:
 
         self.save_database()
         return True
+
