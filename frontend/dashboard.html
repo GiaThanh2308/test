@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body>
+    <div class="layout">
+
+      <!-- Sidebar (desktop) — nội dung được renderNav() inject -->
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <!-- Main -->
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Dashboard</h1>
+            <p id="dateDisplay">Đang tải...</p>
+          </div>
+          <div class="user-box">
+            <i class="fa-solid fa-user-circle"></i>
+            <span id="usernameDisplay">---</span>
+            <span id="roleBadge" class="role-badge"></span>
+          </div>
+        </header>
+
+        <!-- Stats cards -->
+        <section class="stats">
+          <div class="stat-card red">
+            <div class="card-header">
+              <span>Vi phạm hôm nay</span>
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 id="statToday">—</h2>
+          </div>
+          <div class="stat-card blue">
+            <div class="card-header">
+              <span>Vi phạm tuần này</span>
+              <i class="fa-solid fa-calendar-week"></i>
+            </div>
+            <h2 id="statWeek">—</h2>
+          </div>
+          <div class="stat-card amber">
+            <div class="card-header">
+              <span>Vi phạm tháng này</span>
+              <i class="fa-solid fa-calendar"></i>
+            </div>
+            <h2 id="statMonth">—</h2>
+          </div>
+        </section>
+
+        <!-- Top violators + điểm trừ theo lớp (2 cột ngang bằng) -->
+        <section class="content-row" style="gap:20px;display:grid;grid-template-columns:1fr 1fr;margin-bottom:24px;">
+          <div class="card" style="display:flex;flex-direction:column;">
+            <h2 style="margin-bottom:16px;flex-shrink:0;">
+              <i class="fa-solid fa-ranking-star" style="color:#f59e0b;margin-right:8px"></i>
+              Vi phạm nhiều nhất
+            </h2>
+            <div id="topViolators" style="max-height:260px;overflow-y:auto;padding-right:4px;"><div class="loading-placeholder">Đang tải...</div></div>
+          </div>
+
+          <div class="card" style="display:flex;flex-direction:column;">
+            <h2 style="margin-bottom:16px;flex-shrink:0;">
+              <i class="fa-solid fa-minus-circle" style="color:#ef4444;margin-right:8px"></i>
+              Điểm trừ theo lớp (tuần này)
+            </h2>
+            <div id="classScores" style="max-height:260px;overflow-y:auto;padding-right:4px;"><div class="loading-placeholder">Đang tải...</div></div>
+          </div>
+        </section>
+
+        <!-- Recent violations table (bỏ cột Ghi chú) -->
+        <div class="table-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #f3f4f6;">
+            <h2 style="margin:0;font-size:16px;font-weight:700;">
+              <i class="fa-solid fa-clock-rotate-left" style="color:#6b7280;margin-right:8px"></i>
+              Vi phạm gần đây
+            </h2>
+          </div>
+          <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
+            <table>
+              <thead style="position:sticky;top:0;background:#fff;z-index:1;">
+                <tr>
+                  <th>Học sinh</th>
+                  <th>Lớp</th>
+                  <th>Vi phạm</th>
+                  <th style="text-align:center;">Điểm trừ</th>
+                  <th>Thời gian</th>
+                </tr>
+              </thead>
+              <tbody id="recentViolations">
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Mobile nav — nội dung được renderNav() inject -->
+    <nav class="mobile-nav" id="mobileNav"></nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+      requireAuth();
+      requireTeacher();
+      renderNav("dashboard");
+    </script>
+  </body>
+</html>
+
+

@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>Quét vi phạm — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      body { background: #0f172a; }
+
+      .scan-layout {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 0 0 90px;
+      }
+
+      /* ── Header ── */
+      .scan-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px 12px;
+        background: #0f172a;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .scan-header-left { display: flex; align-items: center; gap: 10px; }
+      .scan-header-left i { color: #3b82f6; font-size: 22px; }
+      .scan-header-left span { color: white; font-weight: 700; font-size: 17px; }
+      .scan-user {
+        display: flex; align-items: center; gap: 8px;
+        background: #1e293b;
+        border-radius: 20px;
+        padding: 7px 14px;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .scan-user i { color: #3b82f6; }
+
+      /* ── Mode Tabs ── */
+      .mode-tabs {
+        display: flex;
+        margin: 0 16px 0;
+        background: #1e293b;
+        border-radius: 14px;
+        padding: 4px;
+        gap: 4px;
+      }
+      .mode-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 0;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        background: transparent;
+        transform: none !important;
+      }
+      .mode-tab:hover { color: #94a3b8; background: transparent; transform: none !important; }
+      .mode-tab.active {
+        background: #2563eb;
+        color: white;
+        box-shadow: 0 2px 8px rgba(37,99,235,0.4);
+      }
+      .mode-tab i { font-size: 15px; }
+
+      /* ── Camera block ── */
+      .camera-block {
+        position: relative;
+        background: #000;
+        aspect-ratio: 4/3;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+      #video {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: none;
+      }
+      .cam-placeholder {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center;
+        gap: 12px; color: #475569;
+      }
+      .cam-placeholder i { font-size: 52px; }
+      .cam-placeholder p { font-size: 15px; font-weight: 600; }
+      .cam-placeholder small { font-size: 13px; }
+
+      /* Scan frame overlay */
+      .scan-frame {
+        position: absolute; inset: 0;
+        display: none;
+        justify-content: center; align-items: center;
+        pointer-events: none;
+      }
+      .scan-frame.visible { display: flex; }
+      .scan-frame-box {
+        width: 220px; height: 220px;
+        border: 3px solid #3b82f6;
+        border-radius: 20px;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+        position: relative;
+      }
+
+      /* Plate frame — wider rectangle */
+      .scan-frame-box.plate-frame {
+        width: 280px;
+        height: 140px;
+        border-color: #f59e0b;
+        border-radius: 12px;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+      }
+      .scan-frame-box.plate-frame .scan-line {
+        background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+      }
+
+      .scan-frame-box::before, .scan-frame-box::after,
+      .scan-frame-box > span::before, .scan-frame-box > span::after {
+        content: ''; position: absolute;
+        width: 24px; height: 24px;
+        border-color: #60a5fa; border-style: solid;
+      }
+      .scan-frame-box.plate-frame::before,
+      .scan-frame-box.plate-frame::after,
+      .scan-frame-box.plate-frame > span::before,
+      .scan-frame-box.plate-frame > span::after {
+        border-color: #fbbf24;
+      }
+      .scan-frame-box::before  { top: -3px; left: -3px;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+      .scan-frame-box::after   { top: -3px; right: -3px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+      .scan-frame-box > span::before { bottom: -3px; left: -3px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+      .scan-frame-box > span::after  { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+      .scan-line {
+        position: absolute; left: 8px; right: 8px; height: 2px;
+        background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+        animation: scanMove 2s ease-in-out infinite;
+        top: 20px;
+      }
+      @keyframes scanMove {
+        0%, 100% { top: 20px; }
+        50% { top: calc(100% - 22px); }
+      }
+
+      /* Mode hint label inside camera */
+      .cam-mode-hint {
+        position: absolute;
+        top: 10px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.6);
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 5px 14px;
+        border-radius: 20px;
+        display: none;
+        white-space: nowrap;
+        z-index: 5;
+        letter-spacing: 0.3px;
+      }
+      .cam-mode-hint.visible { display: block; }
+      .cam-mode-hint.face-hint { border: 1.5px solid #3b82f6; }
+      .cam-mode-hint.plate-hint { border: 1.5px solid #f59e0b; color: #fbbf24; }
+
+      /* ── Camera controls ── */
+      .cam-controls {
+        display: flex;
+        gap: 10px;
+        padding: 12px 16px;
+        background: #1e293b;
+      }
+      .cam-controls button {
+        flex: 1;
+        padding: 13px 0;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        transform: none !important;
+      }
+      .cam-controls button:hover { transform: none !important; }
+      .btn-cam-start { background: #2563eb; color: white; }
+      .btn-cam-start:hover { background: #1d4ed8; }
+      .btn-cam-scan  { background: #16a34a; color: white; }
+      .btn-cam-scan:hover { background: #15803d; }
+      .btn-cam-stop  { background: #374151; color: #9ca3af; }
+      .btn-cam-stop:hover { background: #4b5563; }
+
+      /* Plate scan button — amber */
+      .btn-cam-scan.plate { background: #d97706; }
+      .btn-cam-scan.plate:hover { background: #b45309; }
+
+      /* ── Upload ── */
+      .upload-alt {
+        padding: 12px 16px 0;
+        display: flex; align-items: center; gap: 10px;
+      }
+      .upload-alt label {
+        flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 11px 0;
+        background: #1e293b;
+        color: #94a3b8;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px dashed #334155;
+      }
+      .upload-alt input { display: none; }
+
+      /* ── Result block ── */
+      .result-block { flex: 1; padding: 16px; }
+
+      .result-empty {
+        background: #1e293b;
+        border-radius: 16px;
+        padding: 32px 24px;
+        text-align: center;
+        color: #475569;
+      }
+      .result-empty i { font-size: 48px; margin-bottom: 12px; display: block; }
+      .result-empty p { font-weight: 600; font-size: 15px; }
+      .result-empty small { font-size: 13px; }
+
+      /* ── Student card ── */
+      .student-card {
+        background: #1e293b;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .student-card-top {
+        padding: 20px;
+        display: flex; align-items: center; gap: 16px;
+      }
+      .student-card-top.face-top {
+        background: linear-gradient(135deg, #1e40af, #2563eb);
+      }
+      .student-card-top.plate-top {
+        background: linear-gradient(135deg, #92400e, #d97706);
+      }
+      .student-avatar {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px; color: white; flex-shrink: 0;
+      }
+      .student-name { color: white; font-size: 19px; font-weight: 800; }
+      .student-meta { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 3px; }
+      .confidence-pill {
+        margin-left: auto;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      /* Plate result card */
+      .plate-result-card {
+        background: #1e293b;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .plate-number-display {
+        background: linear-gradient(135deg, #78350f, #d97706);
+        padding: 24px 20px;
+        text-align: center;
+      }
+      .plate-number-text {
+        font-size: 32px;
+        font-weight: 900;
+        color: white;
+        letter-spacing: 4px;
+        font-family: 'Courier New', monospace;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      .plate-number-label {
+        color: rgba(255,255,255,0.7);
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 4px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .student-info {
+        padding: 14px 20px;
+        border-bottom: 1px solid #334155;
+      }
+      .info-row {
+        display: flex; justify-content: space-between;
+        padding: 9px 0;
+        border-bottom: 1px solid #0f172a;
+        font-size: 14px;
+      }
+      .info-row:last-child { border-bottom: none; }
+      .info-label { color: #64748b; }
+      .info-value { color: #e2e8f0; font-weight: 600; }
+
+      /* ── Violation form ── */
+      .violation-form { padding: 16px 20px 20px; }
+      .violation-form h3 {
+        color: #e2e8f0;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .violation-form select,
+      .violation-form textarea {
+        width: 100%;
+        background: #0f172a;
+        border: 1.5px solid #334155;
+        color: #e2e8f0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        margin-bottom: 10px;
+      }
+      .violation-form select:focus,
+      .violation-form textarea:focus { border-color: #3b82f6; }
+      .violation-form textarea { min-height: 80px; resize: none; }
+      .violation-form select option { background: #1e293b; }
+
+      .btn-save-violation {
+        width: 100%;
+        padding: 15px;
+        background: #dc2626;
+        color: white;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transform: none !important;
+      }
+      .btn-save-violation:hover { background: #b91c1c; transform: none !important; }
+      .btn-save-violation:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+
+      /* ── Toast ── */
+      .toast {
+        position: fixed;
+        bottom: 96px; left: 16px; right: 16px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex; align-items: center; gap: 10px;
+        z-index: 9999;
+        animation: toastIn 0.3s ease;
+        max-width: 480px; margin: 0 auto;
+      }
+      .toast.success { background: #16a34a; color: white; }
+      .toast.error   { background: #dc2626; color: white; }
+      @keyframes toastIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to   { transform: translateY(0); opacity: 1; }
+      }
+
+      /* ── Bottom nav ── */
+      .bottom-nav {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 72px;
+        background: #1e293b;
+        display: flex; justify-content: space-around; align-items: center;
+        border-top: 1px solid #334155;
+        z-index: 100;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .nav-item {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        color: #64748b; font-size: 11px; font-weight: 600;
+        text-decoration: none; padding: 8px 16px; border-radius: 10px;
+        cursor: pointer;
+      }
+      .nav-item i { font-size: 20px; }
+      .nav-item.active { color: #3b82f6; }
+
+      @media (min-width: 600px) {
+        .bottom-nav { position: fixed; }
+      }
+
+      canvas { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="scan-layout">
+
+      <!-- Header -->
+      <header class="scan-header">
+        <div class="scan-header-left">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>AI School — Quét</span>
+        </div>
+        <div class="scan-user" onclick="logout()">
+          <i class="fa-solid fa-user-shield"></i>
+          <span id="usernameDisplay">---</span>
+          <i class="fa-solid fa-right-from-bracket" style="font-size:12px;color:#64748b"></i>
+        </div>
+      </header>
+
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabFace" onclick="switchMode('face')">
+          <i class="fa-solid fa-face-viewfinder"></i> Khuôn mặt
+        </button>
+        <button class="mode-tab" id="tabPlate" onclick="switchMode('plate')">
+          <i class="fa-solid fa-car"></i> Biển số xe
+        </button>
+      </div>
+
+      <!-- Camera -->
+      <div class="camera-block">
+        <div class="cam-placeholder" id="camPlaceholder">
+          <i class="fa-solid fa-camera"></i>
+          <p>Camera đang tắt</p>
+          <small>Nhấn "Bật Camera" để bắt đầu</small>
+        </div>
+        <video id="video" autoplay playsinline></video>
+
+        <!-- Face frame -->
+        <div class="scan-frame" id="scanFrameFace">
+          <div class="scan-frame-box">
+            <span></span>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+
+        <!-- Plate frame (wider rectangle) -->
+        <div class="scan-frame" id="scanFramePlate">
+          <div class="scan-frame-box plate-frame">
+            <span></span>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+
+        <!-- Mode hint -->
+        <div class="cam-mode-hint face-hint" id="modeHint">
+          <i class="fa-solid fa-face-viewfinder"></i> Hướng camera vào khuôn mặt
+        </div>
+
+        <canvas id="canvas" width="640" height="480"></canvas>
+      </div>
+
+      <!-- Camera controls -->
+      <div class="cam-controls">
+        <button class="btn-cam-start" onclick="startCamera()">
+          <i class="fa-solid fa-video"></i> Bật
+        </button>
+        <button class="btn-cam-scan" id="btnScan" onclick="captureAndRecognize()">
+          <i class="fa-solid fa-face-viewfinder"></i> Nhận diện
+        </button>
+        <button class="btn-cam-stop" onclick="stopCamera()">
+          <i class="fa-solid fa-stop"></i> Tắt
+        </button>
+      </div>
+
+      <!-- Upload alternative -->
+      <div class="upload-alt">
+        <label>
+          <i class="fa-solid fa-image"></i>
+          Chọn ảnh từ thiết bị
+          <input type="file" id="imageInput" accept="image/*" onchange="uploadImage()" />
+        </label>
+      </div>
+
+      <!-- Result block -->
+      <div class="result-block">
+        <div id="resultArea">
+          <div class="result-empty">
+            <i class="fa-solid fa-user-slash"></i>
+            <p>Chưa nhận diện</p>
+            <small>Hướng camera vào học sinh rồi nhấn Nhận diện</small>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end scan-layout -->
+
+    <!-- Bottom nav -->
+    <nav class="bottom-nav">
+      <span class="nav-item active">
+        <i class="fa-solid fa-camera"></i> Quét
+      </span>
+      <span class="nav-item" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Thoát
+      </span>
+    </nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/scan.js"></script>
+  </body>
+</html>
+
+
+
+================================================
+
