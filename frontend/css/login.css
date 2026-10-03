@@ -1,0 +1,339 @@
+/* =============================================
+   login.css — AI School split-screen login
+   Desktop: ảnh trái | form phải
+   Mobile : chỉ hiện form (ảnh ẩn tự động)
+   ============================================= */
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f0f4f8;
+}
+
+/* ─── Container full màn hình ─── */
+.login-page {
+  display: flex;
+  width: 100%;
+  height: 100vh; /* full chiều cao màn hình */
+  min-height: 500px;
+}
+
+/* ─── Panel trái (branding / ảnh) ─── */
+.login-panel-left {
+  /* Chiếm 45% chiều rộng — đổi tỉ lệ tuỳ ý */
+  flex: 0 0 45%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/*
+  ── CÁCH THAY ẢNH BÊN TRÁI ──────────────────────────────────────────
+  Thay thế dòng `background` bên dưới bằng ảnh của bạn:
+
+  Dùng ảnh local (để trong thư mục img/):
+    background: url('../img/ten-anh-cua-ban.jpg') center / cover no-repeat;
+
+  Dùng ảnh online:
+    background: url('https://link-anh-cua-ban.jpg') center / cover no-repeat;
+
+  Muốn giữ gradient đè lên ảnh (làm tối ảnh để chữ dễ đọc hơn):
+    background:
+      linear-gradient(140deg, rgba(26,46,74,0.75) 0%, rgba(26,111,168,0.6) 100%),
+      url('../img/ten-anh.jpg') center / cover no-repeat;
+  ─────────────────────────────────────────────────────────────────── */
+
+/* Vòng trang trí */
+
+.login-panel-left__content {
+  position: relative;
+  text-align: center;
+  color: #fff;
+  padding: 2rem 1.5rem;
+}
+
+.login-panel-left__icon {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.login-panel-left__icon i {
+  font-size: 34px;
+  color: #fff;
+}
+
+.login-panel-left__content h2 {
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.login-panel-left__content p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+/* Chấm trang trí */
+.login-panel-left__dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.dot--active {
+  width: 20px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Panel phải (form) ─── */
+.login-panel-right {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 3rem;
+  overflow-y: auto;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Logo nhỏ trên cùng (chỉ hiện trên điện thoại) */
+.login-logo-mini {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+  color: #1a6fa8;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.login-logo-mini i {
+  font-size: 18px;
+}
+
+/* ─── Card form ─── */
+.login-card h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 1.75rem;
+}
+
+/* ─── Input groups ─── */
+.input-group {
+  margin-bottom: 1.1rem;
+}
+
+.input-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.input-icon-wrap {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #aaa;
+  pointer-events: none;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px 12px 10px 34px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #1a1a1a;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.input-group input::placeholder {
+  color: #bbb;
+}
+
+.input-group input:focus {
+  border-color: #1a6fa8;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(26, 111, 168, 0.1);
+}
+
+/* ─── Nút đăng nhập ─── */
+button {
+  width: 100%;
+  padding: 11px;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  background: #1a6fa8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    background 0.2s,
+    transform 0.1s;
+}
+
+button:hover {
+  background: #155d8e;
+}
+button:active {
+  transform: scale(0.98);
+}
+
+/* ─── Thông báo lỗi ─── */
+#loginMessage {
+  margin-top: 0.9rem;
+  font-size: 13px;
+  color: #d0392b;
+  text-align: center;
+  min-height: 18px;
+}
+
+/* ─── Footer ─── */
+.login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 11px;
+  color: #bbb;
+}
+
+/* ─── RESPONSIVE: điện thoại ─── */
+@media (max-width: 600px) {
+  .login-page {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Ẩn hoàn toàn panel trái */
+  .login-panel-left {
+    display: none;
+  }
+
+  .login-panel-right {
+    padding: 2rem 1.5rem;
+    flex: 1;
+  }
+
+  /* Hiện logo nhỏ thay thế */
+  .login-logo-mini {
+    display: flex;
+  }
+}
+/* ===== IMAGE SLIDER ===== */
+
+.slider {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition:
+    opacity 1.2s ease,
+    transform 6s ease;
+}
+
+.slide.active {
+  opacity: 1;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1);
+  object-position: center;
+  transition: transform 6s ease;
+}
+.slide:nth-child(1) img {
+  object-position: 40% center;
+}
+
+.slide:nth-child(2) img {
+  object-position: 70% center;
+}
+.slide.active img {
+  transform: scale(1.08);
+}
+
+/* lớp phủ tối để chữ dễ nhìn */
+.login-panel-left__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+
+.login-panel-left__content {
+  position: relative;
+  z-index: 2;
+}

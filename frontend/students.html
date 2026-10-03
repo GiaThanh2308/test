@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý học sinh — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/students.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+      .filter-bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .filter-btn {
+        background: var(--gray-100);
+        color: var(--gray-800);
+        border: none;
+        padding: 7px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        width: auto;
+      }
+      .filter-btn:hover { background: var(--gray-200); transform: none; }
+      .filter-btn.active { background: var(--primary); color: white; }
+      .search-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .search-row .search-box { flex: 1; min-width: 200px; }
+      #lopFilter {
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid var(--gray-200);
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        background: white;
+        min-width: 140px;
+      }
+      #lopFilter:focus { border-color: var(--primary); }
+    </style>
+  </head>
+
+  <body>
+    <div class="layout">
+
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Quản lý học sinh</h1>
+            <p>Danh sách và thông tin học sinh</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <button class="add-btn" onclick="openModal()">
+              <i class="fa-solid fa-plus"></i> Thêm học sinh
+            </button>
+            <button class="btn-success" onclick="importFromFolders()" id="importBtn">
+              <i class="fa-solid fa-rotate"></i> Đồng bộ lại
+            </button>
+          </div>
+        </header>
+
+        <section class="stats">
+          <div class="stat-card student">
+            <div class="card-header">
+              <span>Tổng học sinh</span>
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <h2 id="studentCount">0</h2>
+          </div>
+          <div class="stat-card face">
+            <div class="card-header">
+              <span>Đã có khuôn mặt</span>
+              <i class="fa-solid fa-face-smile"></i>
+            </div>
+            <h2 id="faceCount">0</h2>
+          </div>
+          <div class="stat-card plate">
+            <div class="card-header">
+              <span>Lớp học</span>
+              <i class="fa-solid fa-school"></i>
+            </div>
+            <h2 id="classCount">0</h2>
+          </div>
+        </section>
+
+        <section class="search-section" style="flex-direction:column;align-items:stretch;gap:10px;">
+          <!-- Bộ lọc khối -->
+          <div class="filter-bar" id="classFilterBar">
+            <button class="filter-btn active" onclick="setKhoiFilter('', this)">Tất cả</button>
+          </div>
+          <!-- Tìm kiếm + lọc lớp -->
+          <div class="search-row">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Tìm kiếm học sinh..."
+                id="searchInput"
+                oninput="filterStudents()"
+              />
+            </div>
+            <select id="lopFilter" onchange="filterStudents()">
+              <option value="">Tất cả lớp</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã HS</th>
+                <th>Họ tên</th>
+                <th>Lớp</th>
+                <th>SĐT</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="studentTable"></tbody>
+          </table>
+        </section>
+        <div class="pager" id="pager"></div>
+      </main>
+    </div>
+
+    <nav class="mobile-nav" id="mobileNav"></nav>
+
+    <!-- Modal thêm/sửa học sinh -->
+    <div class="modal" id="studentModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Thêm học sinh</h2>
+          <button class="close-btn" onclick="closeModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <input type="hidden" id="editingId" />
+        <div class="form-group">
+          <label>Mã học sinh</label>
+          <input type="text" id="studentCode" placeholder="Để trống để tự tạo (VD: HS120122)" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Họ tên</label>
+          <input type="text" id="fullName" placeholder="Ví dụ: Nguyễn Văn A" />
+        </div>
+        <div class="form-group">
+          <label><span style="color: red;">*</span> Lớp</label>
+          <input type="text" id="className" placeholder="Ví dụ: 10A1" />
+        </div>
+        <div class="form-group">
+          <label>Face Label</label>
+          <input type="text" id="faceLabel" placeholder="Ví dụ: VanA_10A1" />
+        </div>
+        <div class="form-group">
+          <label>Số điện thoại</label>
+          <input type="text" id="phone" placeholder="Ví dụ: 0901234567" />
+        </div>
+        <button class="save-btn" onclick="saveStudent()">Lưu học sinh</button>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/students.js"></script>
+  </body>
+</html>

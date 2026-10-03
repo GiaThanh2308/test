@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Nhận diện — AI School</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+  <link rel="stylesheet" href="css/recognition.css" />
+</head>
+<body class="page-rec">
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h1>Nhận diện khuôn mặt</h1><p>Hệ thống AI quản lý học sinh</p></div>
+    </header>
+
+    <section class="rec-grid">
+      <div class="cam-stage" id="stage" data-state="idle">
+        <video id="video" autoplay playsinline muted></video>
+        <img id="freezeImg" alt="" />
+
+        <div class="cam-idle">
+          <i class="fa-solid fa-camera"></i>
+          <p>Camera đang tắt</p>
+          <small>Bật camera hoặc chọn ảnh có sẵn</small>
+          <div class="idle-actions">
+            <button class="btn-start" onclick="startCamera()"><i class="fa-solid fa-video"></i> Bật camera</button>
+            <label class="btn-alt"><i class="fa-solid fa-image"></i> Chọn ảnh
+              <input type="file" id="imageInput" accept="image/*" hidden onchange="uploadImage()" /></label>
+          </div>
+        </div>
+
+        <div class="cam-hud">
+          <div class="cam-frame">
+            <i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+            <div class="sweep"></div>
+            <div class="cam-badge" id="camBadge"><i class="fa-solid fa-check"></i></div>
+          </div>
+        </div>
+
+        <div class="cam-status"><span class="dot"></span><span id="statusText">Đưa khuôn mặt vào khung</span></div>
+        <button class="ctl cam-power" onclick="stopCamera()" title="Tắt camera"><i class="fa-solid fa-power-off"></i></button>
+
+        <div class="cam-controls">
+          <label class="ctl" title="Chọn ảnh"><i class="fa-solid fa-image"></i></label>
+          <button class="shutter" id="shutter" onclick="captureAndRecognize()" aria-label="Chụp và nhận diện"><span></span></button>
+          <button class="ctl" onclick="flipCamera()" title="Đổi camera"><i class="fa-solid fa-camera-rotate"></i></button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <h2>Kết quả nhận diện</h2>
+        <div id="studentProfile">
+          <div class="res-empty"><i class="fa-solid fa-user"></i><p>Chưa nhận diện học sinh</p><small>Thông tin sẽ hiện ở đây</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card recent-card">
+      <h2>Vi phạm gần đây</h2>
+      <div id="recentViolations"><div class="res-empty"><small>Đang tải...</small></div></div>
+    </section>
+  </main>
+</div>
+<nav class="mobile-nav" id="mobileNav"></nav>
+<canvas id="canvas" hidden></canvas>
+
+<script src="js/api.js"></script>
+<script src="js/face.js"></script>
+</body>
+</html>

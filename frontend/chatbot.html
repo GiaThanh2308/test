@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot AI — AI School</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/chatbot.css" />
+  </head>
+  <body>
+    <div class="layout">
+
+      <!-- Sidebar (desktop) — nội dung được renderNav() inject -->
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Chatbot AI</h1>
+            <p>Hỏi về học sinh, vi phạm và thống kê</p>
+          </div>
+        </header>
+
+        <div class="chat-layout">
+          <!-- Main chat -->
+          <div class="chat-main">
+            <div class="chat-header">
+              <div class="bot-avatar"><i class="fa-solid fa-robot"></i></div>
+              <div class="chat-header-info">
+                <strong>AI School Assistant</strong>
+                <small>● Được hỗ trợ bởi Groq AI</small>
+              </div>
+              <span class="context-badge" id="contextBadge">Đang tải...</span>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+              <div class="msg bot">
+                <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="msg-bubble">
+                  Xin chào! Tôi là AI School Assistant. Tôi có thể giúp bạn:<br /><br />
+                  • Tra cứu thông tin và lịch sử vi phạm của học sinh<br />
+                  • Xem thống kê vi phạm theo ngày, tuần, tháng<br />
+                  • Tổng hợp báo cáo nhanh<br /><br />
+                  Bạn cần hỗ trợ gì?
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-actions">
+              <button class="clear-btn" onclick="clearChat()">
+                <i class="fa-solid fa-trash-can"></i> Xóa hội thoại
+              </button>
+            </div>
+
+            <div class="chat-input">
+              <input
+                type="text"
+                id="chatInput"
+                placeholder="Nhập câu hỏi..."
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
+              />
+              <button id="sendBtn" onclick="sendMessage()">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sidebar chat -->
+          <div class="chat-sidebar">
+            <div class="shortcuts">
+              <h3>Câu hỏi nhanh</h3>
+              <button class="shortcut-btn" onclick="quickAsk('Tổng kết vi phạm hôm nay')">📊 Tổng kết hôm nay</button>
+              <button class="shortcut-btn" onclick="quickAsk('Học sinh nào vi phạm nhiều nhất tuần này?')">🏆 Vi phạm nhiều nhất</button>
+              <button class="shortcut-btn" onclick="quickAsk('Thống kê vi phạm theo loại')">📋 Vi phạm theo loại</button>
+              <button class="shortcut-btn" onclick="quickAsk('Có bao nhiêu học sinh trong hệ thống?')">👥 Tổng học sinh</button>
+              <button class="shortcut-btn" onclick="quickAsk('Danh sách vi phạm gần đây nhất')">🔔 Vi phạm gần đây</button>
+              <button class="shortcut-btn" onclick="quickAsk('Tóm tắt báo cáo tháng này')">📅 Báo cáo tháng</button>
+            </div>
+
+            <div class="shortcuts">
+              <h3>Tra cứu học sinh</h3>
+              <p style="font-size:13px;color:var(--gray-400);margin-bottom:10px;">Nhập tên hoặc mã học sinh</p>
+              <div style="display:flex;gap:8px">
+                <input
+                  id="studentSearch"
+                  type="text"
+                  placeholder="Tên / mã HS..."
+                  style="border-radius:8px;font-size:13px"
+                  onkeydown="if(event.key==='Enter') searchStudent();"
+                />
+                <button class="btn-sm" onclick="searchStudent()">
+                  <i class="fa-solid fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Mobile nav — nội dung được renderNav() inject -->
+    <nav class="mobile-nav" id="mobileNav"></nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/chatbot.js"></script>
+  </body>
+</html>

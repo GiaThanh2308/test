@@ -1,0 +1,75 @@
+/* theme.css — giao diện tối đồng bộ với dashboard. Nạp SAU style.css */
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:rgba(255,255,255,.07);
+  --text:#e8eaf0;--muted:#7c82a0;
+  --primary:#6c63ff;--primary-dark:#5a52e0;--primary-light:rgba(108,99,255,.15);
+  --success:#22d3a5;--danger:#f43f5e;--warning:#f97316;
+  --gray-50:#22263a;--gray-100:#22263a;--gray-200:rgba(255,255,255,.1);
+  --gray-400:#7c82a0;--gray-600:#9aa0bc;--gray-800:#e8eaf0;
+  --sidebar-bg:#1a1d27;--radius:14px;--radius-sm:10px;--shadow:0 8px 32px rgba(0,0,0,.3);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg)!important;color:var(--text)}
+.sidebar{background:var(--surface)!important;border-right:1px solid var(--border);width:240px}
+.main{margin-left:240px}
+.logo{border-bottom:1px solid var(--border)}
+.logo i{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--primary),#a78bfa)}
+.menu li{color:var(--muted);position:relative}
+.menu li:hover{background:var(--surface2);color:var(--text)}
+.menu li.active{background:var(--primary-light);color:var(--primary)}
+.menu li.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:var(--primary);border-radius:0 3px 3px 0}
+.sidebar-user{border-top-color:var(--border)}
+.logout-btn{background:var(--surface2);color:var(--muted)}
+.logout-btn:hover{background:var(--primary-light);color:var(--text)}
+.topbar h1{font-size:22px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.topbar p{color:var(--muted)}
+.stat-card,.card,.table-card,.search-section,.result-card,.user-box,.chat-main,.shortcuts,.modal-content{
+  background:var(--surface)!important;border:1px solid var(--border);box-shadow:none!important;color:var(--text)}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)!important}
+.card-header,.stat-card h2{color:var(--text)}
+.card-header span{color:var(--muted)}
+thead{background:var(--surface2)!important}
+th{color:var(--muted)}
+tbody tr{border-bottom-color:var(--border)}
+tbody tr:hover{background:var(--surface2)}
+input,select,textarea{background:var(--bg)!important;color:var(--text)!important;border:1.5px solid var(--border)!important;border-radius:var(--radius-sm)}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;outline:none}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+select option,select optgroup{background:var(--surface2);color:var(--text)}
+button{background:var(--primary)}
+.btn-success{color:#06281f}
+.btn-ghost,.close-btn,.clear-btn{background:var(--surface2);color:var(--text)}
+.btn-ghost:hover,.close-btn:hover,.clear-btn:hover{background:var(--primary-light)}
+.badge-blue{background:var(--primary-light);color:#a5a0ff}
+.badge-red{background:rgba(244,63,94,.15);color:var(--danger)}
+
+.badge-amber{background:rgba(249,115,22,.15);color:var(--warning)}
+.modal-header h2,.form-group label{color:var(--text)}
+.form-group label{color:var(--muted)}
+
+/* mobile nav */
+.mobile-nav{background:var(--surface)!important;border-top:1px solid var(--border)!important;box-shadow:none!important}
+.mobile-item{color:var(--muted)!important}
+.mobile-item.active{color:var(--primary)!important}
+@media(max-width:768px){.main{margin-left:0}}
+.user-box{color:var(--text)}
+.modal{background:rgba(0,0,0,.6)}
+.filter-btn{background:var(--surface2)!important;color:var(--muted)!important}
+.filter-btn.active{background:var(--primary)!important;color:#fff!important}
+.edit-btn{background:var(--primary-light)!important;color:#a5a0ff}
+.delete-btn{background:rgba(244,63,94,.15)!important;color:var(--danger)}
+/* students: avatar + phân trang */
+.stu-cell{display:flex;align-items:center;gap:12px}
+.stu-thumb{position:relative;width:34px;height:34px;border-radius:50%;flex-shrink:0;overflow:hidden;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--primary-light);color:#a5a0ff}
+.stu-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 4px;flex-wrap:wrap}
+.pager-info{font-size:13px;color:var(--muted)}
+.pager-btns{display:flex;align-items:center;gap:10px}
+.pager-btns .btn-sm{width:auto;background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.pager-btns .btn-sm:disabled{opacity:.35}
+.pager-cur{font-size:13px;font-weight:600}
+
+/* huy hiệu vai trò (renderNav gán data-role) */
+.role-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px}
+.role-badge[data-role=admin]{background:rgba(249,115,22,.15);color:var(--warning)}
+.role-badge[data-role=teacher]{background:var(--primary-light);color:#a5a0ff}
+.role-badge[data-role=student]{background:rgba(34,211,165,.15);color:var(--success)}

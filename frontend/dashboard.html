@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI School — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/nav.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: rgba(255,255,255,0.07);
+      --text: #e8eaf0;
+      --text-muted: #7c82a0;
+      --primary: #6c63ff;
+      --primary-light: rgba(108,99,255,0.15);
+      --green: #22d3a5;
+      --green-light: rgba(34,211,165,0.15);
+      --orange: #f97316;
+      --orange-light: rgba(249,115,22,0.15);
+      --red: #f43f5e;
+      --red-light: rgba(244,63,94,0.15);
+      --blue: #38bdf8;
+      --blue-light: rgba(56,189,248,0.15);
+      --sidebar-w: 240px;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar-title { font-size: 16px; font-weight: 600; }
+    .topbar-sub   { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s;
+      text-decoration: none;
+    }
+
+    
+    
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+    
+    
+
+    
+
+    /* ── CONTENT ── */
+    .content {
+      padding: 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: default;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .stat-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    
+    
+    
+    
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* ── CHARTS ROW ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── VIOLATION TYPE LEGEND ── */
+    .vtype-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .vtype-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vtype-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .vtype-name { font-size: 13px; flex: 1; }
+    .vtype-count { font-size: 13px; font-weight: 600; }
+
+    .vtype-bar-track {
+      width: 60px;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .vtype-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    /* ── BOTTOM ROW ── */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ── TOP VIOLATORS TABLE ── */
+    .mini-table { width: 100%; }
+
+    .mini-table tr { cursor: default; }
+
+    .mini-table tr:not(:last-child) td {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mini-table td {
+      padding: 12px 4px;
+      vertical-align: middle;
+    }
+
+    .rank-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .rank-1 { background: rgba(255,215,0,0.15); color: #fbbf24; }
+    .rank-2 { background: rgba(192,192,192,0.15); color: #9ca3af; }
+    .rank-3 { background: rgba(205,127,50,0.15); color: #d97706; }
+    .rank-other { background: var(--surface2); color: var(--text-muted); }
+
+    .stu-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .stu-name  { font-size: 13px; font-weight: 600; }
+    .stu-meta  { font-size: 11px; color: var(--text-muted); }
+
+    .violation-badge {
+      background: var(--red-light);
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ── ACTIVITY FEED ── */
+    .feed-list { display: flex; flex-direction: column; gap: 0; }
+
+    .feed-item {
+      display: flex;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .feed-item:last-child { border-bottom: none; }
+
+    .feed-dot-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .feed-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .feed-line {
+      width: 1px;
+      flex: 1;
+      background: var(--border);
+      margin-top: 4px;
+      min-height: 14px;
+    }
+
+    .feed-body { flex: 1; }
+    .feed-name { font-size: 13px; font-weight: 600; }
+    .feed-type { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+    .feed-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── QUICK ACTIONS ── */
+    
+
+    
+
+    
+
+    
+
+    
+
+    /* ── SKELETON ── */
+    
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+      .bottom-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+            .main { margin-left: 0; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .content { padding: 16px; }
+      .main { padding-bottom: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR (do renderNav() tạo, dùng chung mọi trang) ── -->
+<aside class="sidebar" id="sidebar"></aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div>
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-sub">—</div></div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:var(--primary-light); color:var(--primary)">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+        <div>
+          <div class="stat-value" id="total_violations">—</div>
+          <div class="stat-label">Tổng lượt vi phạm</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:var(--red-light); color:var(--red)">
+            <i class="fa-solid fa-calendar-day"></i>
+          </div>
+        </div>
+        <div>
+          <div class="stat-value" id="viol_today">—</div>
+          <div class="stat-label">Vi phạm hôm nay</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:var(--orange-light); color:var(--orange)">
+            <i class="fa-solid fa-calendar-week"></i>
+          </div>
+        </div>
+        <div>
+          <div class="stat-value" id="viol_week">—</div>
+          <div class="stat-label">Vi phạm tuần này</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:var(--blue-light); color:var(--blue)">
+            <i class="fa-solid fa-calendar"></i>
+          </div>
+        </div>
+        <div>
+          <div class="stat-value" id="viol_month">—</div>
+          <div class="stat-label">Vi phạm tháng này</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <!-- Line chart -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Vi phạm 7 ngày gần nhất</div>
+            <div class="card-sub">Theo dõi xu hướng vi phạm hàng ngày</div>
+          </div>
+          <div style="display:flex;gap:8px">
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Violation types -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Loại vi phạm</div>
+            <div class="card-sub">Phân bố theo danh mục</div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <canvas id="donutChart" height="140"></canvas>
+        </div>
+        <div class="vtype-list" id="vtype-list">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row">
+      <!-- Top violators -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Top 5 vi phạm nhiều nhất</div>
+            <div class="card-sub">Tháng này</div>
+          </div>
+          <a href="students.html" class="btn btn-ghost" style="padding:5px 12px;font-size:12px">Xem tất cả</a>
+        </div>
+        <table class="mini-table">
+          <tbody id="top-violators">
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Hoạt động gần đây</div>
+            <div class="card-sub">Cập nhật real-time</div>
+          </div>
+          <div style="width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green)"></div>
+        </div>
+        <div class="feed-list" id="activity-feed">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<nav class="mobile-nav" id="mobileNav"></nav>
+
+<script src="js/api.js"></script>
+<script>
+  requireAuth(); requireTeacher(); renderNav('dashboard');
+  const COLORS = ['#6c63ff','#f97316','#f43f5e','#38bdf8','#22d3a5'];
+  const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const ini = n => (n||'?').trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase();
+  const tip = { backgroundColor:'#22263a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8eaf0', bodyColor:'#7c82a0', padding:10 };
+  const get = async p => { const r = await apiFetch(p); if (!r.ok) throw new Error(p); return r.json(); };
+  const ago = iso => {
+    const d = new Date(iso && !/Z|\+/.test(iso) ? iso + 'Z' : iso), m = Math.max(0, Math.round((Date.now() - d) / 60000));
+    return m < 1 ? 'Vừa xong' : m < 60 ? m + ' phút trước' : m < 1440 ? Math.round(m/60) + ' giờ trước' : Math.round(m/1440) + ' ngày trước';
+  };
+  const empty = t => `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px">${t}</div>`;
+
+  async function loadStats() {
+    const d = await get('/stats/summary');
+    total_violations.textContent = d.total_violations; viol_today.textContent = d.today_violations;
+    viol_week.textContent = d.week_violations; viol_month.textContent = d.month_violations;
+  }
+  async function buildLineChart() {
+    const d = await get('/stats/daily?days=7');
+    const ctx = lineChart.getContext('2d'), g = ctx.createLinearGradient(0,0,0,220);
+    g.addColorStop(0,'rgba(108,99,255,0.35)'); g.addColorStop(1,'rgba(108,99,255,0)');
+    new Chart(ctx, { type:'line', data:{ labels:d.map(x=>x.date), datasets:[{ label:'Vi phạm', data:d.map(x=>x.count),
+      borderColor:'#6c63ff', borderWidth:2.5, pointBackgroundColor:'#6c63ff', pointRadius:4, pointHoverRadius:6, fill:true, backgroundColor:g, tension:.42 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{...tip, callbacks:{label:c=>` ${c.raw} vi phạm`}} },
+        scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0'}}, y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0',precision:0}} } } });
+  }
+  async function buildDonutChart() {
+    const d = (await get('/stats/by-type')).sort((a,b)=>b.count-a.count), list = document.getElementById('vtype-list');
+    const total = d.reduce((s,v)=>s+v.count,0);
+    if (!total) { list.innerHTML = empty('Chưa có dữ liệu'); return; }
+    new Chart(donutChart.getContext('2d'), { type:'doughnut', data:{ labels:d.map(v=>v.type),
+      datasets:[{ data:d.map(v=>v.count), backgroundColor:d.map((_,i)=>COLORS[i%5]), borderWidth:0, hoverOffset:6 }]},
+      options:{ cutout:'72%', plugins:{ legend:{display:false}, tooltip:tip } } });
+    list.innerHTML = d.map((v,i)=>`<div class="vtype-item"><div class="vtype-dot" style="background:${COLORS[i%5]}"></div>
+      <div class="vtype-name">${esc(v.type)}</div><div class="vtype-bar-track"><div class="vtype-bar-fill" style="width:${Math.round(v.count/total*100)}%;background:${COLORS[i%5]}"></div></div>
+      <div class="vtype-count">${v.count}</div></div>`).join('');
+  }
+  async function buildTopViolators() {
+    const d = await get('/stats/top-violators?limit=5'), tb = document.getElementById('top-violators');
+    if (!d.length) { tb.innerHTML = `<tr><td>${empty('Chưa có dữ liệu')}</td></tr>`; return; }
+    tb.innerHTML = d.map((s,i)=>{ const c = COLORS[i%5], r = i<3 ? 'rank-'+(i+1) : 'rank-other';
+      return `<tr><td style="width:28px"><div class="rank-num ${r}">${i+1}</div></td><td><div style="display:flex;align-items:center">
+        <div class="stu-avatar" style="background:${c}22;color:${c}">${esc(ini(s.full_name))}</div>
+        <div><div class="stu-name">${esc(s.full_name)}</div><div class="stu-meta">${esc(s.student_code)} · ${esc(s.class_name)}</div></div></div></td>
+        <td style="text-align:right"><span class="violation-badge">${s.count} lần</span></td></tr>`; }).join('');
+  }
+  async function buildFeed() {
+    const d = await get('/violations?limit=6'), f = document.getElementById('activity-feed');
+    if (!d.length) { f.innerHTML = empty('Chưa có hoạt động'); return; }
+    f.innerHTML = d.map((v,i)=>{ const c = COLORS[i%5];
+      return `<div class="feed-item"><div class="feed-dot-wrap"><div class="feed-dot" style="background:${c}"></div>${i<d.length-1?'<div class="feed-line"></div>':''}</div>
+        <div class="feed-body"><div style="display:flex;align-items:center;gap:8px"><div class="stu-avatar" style="width:28px;height:28px;font-size:11px;margin:0;background:${c}22;color:${c}">${esc(ini(v.student_name))}</div>
+        <div><div class="feed-name">${esc(v.student_name)}</div><div class="feed-type">${esc(v.violation_type)}</div></div></div><div class="feed-time">${ago(v.created_at)}</div></div></div>`; }).join('');
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!isTeacher()) return;
+    [loadStats, buildLineChart, buildDonutChart, buildTopViolators, buildFeed].forEach(fn => fn().catch(e => console.warn(e)));
+    const d = new Date(), days = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+    document.querySelector('.topbar-sub').textContent = `${days[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
+  });
+</script>
+</body>
+</html>
