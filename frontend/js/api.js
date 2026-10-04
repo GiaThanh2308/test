@@ -137,3 +137,62 @@ function renderNav(activePage) {
     badge.dataset.role = role; // màu theo vai trò nằm trong theme.css
   }
 }
+/* ── Toast + hộp xác nhận dùng chung (thay alert/confirm của trình duyệt) ── */
+function toast(msg, err = false, ms = 3200) {
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast" + (err ? " err" : "");
+  t.setAttribute("role", "status");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+function confirmDialog({ title = "Xác nhận", message = "", okText = "Đồng ý", danger = false } = {}) {
+  return new Promise((resolve) => {
+    const box = document.createElement("div");
+    box.className = "dlg-backdrop";
+    box.innerHTML = `<div class="dlg" role="dialog" aria-modal="true">
+      <h3>${escapeHtml(title)}</h3><p>${escapeHtml(message)}</p>
+      <div class="dlg-btns"><button type="button" class="dlg-cancel">Hủy</button>
+      <button type="button" class="dlg-ok${danger ? " danger" : ""}">${escapeHtml(okText)}</button></div></div>`;
+    const onKey = (e) => { if (e.key === "Escape") done(false); };
+    const done = (v) => { document.removeEventListener("keydown", onKey); box.remove(); resolve(v); };
+    box.addEventListener("mousedown", (e) => { if (e.target === box) done(false); });
+    box.querySelector(".dlg-cancel").onclick = () => done(false);
+    box.querySelector(".dlg-ok").onclick = () => done(true);
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(box);
+    box.querySelector(".dlg-cancel").focus();
+  });
+}
+
+/* Ảnh cần đăng nhập: <img data-auth-src="/face-image/..."> được tải bằng fetch (header Authorization)
+   rồi dựng blob — token không còn nằm trong URL (log, lịch sử trình duyệt, Referer). */
+const _imgCache = new Map();
+const _imgObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { _imgObserver.unobserve(e.target); _loadAuthImg(e.target); }
+    }), { rootMargin: "200px" })
+  : null;
+
+async function _loadAuthImg(img) {
+  const path = img.dataset.authSrc;
+  if (!path) return;
+  try {
+    if (!_imgCache.has(path)) {
+      _imgCache.set(path, apiFetch(path).then(async (r) => {
+        if (!r.ok) throw new Error(r.status);
+        return URL.createObjectURL(await r.blob());
+      }));
+    }
+    img.src = await _imgCache.get(path);
+  } catch {
+    _imgCache.delete(path);
+    img.remove();
+  }
+}
+
+function hydrateAuthImages(root = document) {
+  root.querySelectorAll("img[data-auth-src]:not([src])").forEach((img) => (_imgObserver ? _imgObserver.observe(img) : _loadAuthImg(img)));
+}

@@ -1,11 +1,11 @@
 /* theme.css — giao diện tối đồng bộ với dashboard. Nạp SAU style.css */
 :root{
   --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:rgba(255,255,255,.07);
-  --text:#e8eaf0;--muted:#7c82a0;
+  --text:#e8eaf0;--muted:#9aa0bc;
   --primary:#6c63ff;--primary-dark:#5a52e0;--primary-light:rgba(108,99,255,.15);
   --success:#22d3a5;--danger:#f43f5e;--warning:#f97316;
   --gray-50:#22263a;--gray-100:#22263a;--gray-200:rgba(255,255,255,.1);
-  --gray-400:#7c82a0;--gray-600:#9aa0bc;--gray-800:#e8eaf0;
+  --gray-400:#9aa0bc;--gray-600:#9aa0bc;--gray-800:#e8eaf0;
   --sidebar-bg:#1a1d27;--radius:14px;--radius-sm:10px;--shadow:0 8px 32px rgba(0,0,0,.3);
 }
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg)!important;color:var(--text)}
@@ -15,7 +15,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg)!important;col
 .logo i{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--primary),#a78bfa)}
 .menu li{color:var(--muted);position:relative}
 .menu li:hover{background:var(--surface2);color:var(--text)}
-.menu li.active{background:var(--primary-light);color:var(--primary)}
+.menu li.active{background:var(--primary-light);color:#a5a0ff}
 .menu li.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:var(--primary);border-radius:0 3px 3px 0}
 .sidebar-user{border-top-color:var(--border)}
 .logout-btn{background:var(--surface2);color:var(--muted)}
@@ -49,7 +49,7 @@ button{background:var(--primary)}
 /* mobile nav */
 .mobile-nav{background:var(--surface)!important;border-top:1px solid var(--border)!important;box-shadow:none!important}
 .mobile-item{color:var(--muted)!important}
-.mobile-item.active{color:var(--primary)!important}
+.mobile-item.active{color:#a5a0ff!important}
 @media(max-width:768px){.main{margin-left:0}}
 .user-box{color:var(--text)}
 .modal{background:rgba(0,0,0,.6)}
@@ -73,3 +73,18 @@ button{background:var(--primary)}
 .role-badge[data-role=admin]{background:rgba(249,115,22,.15);color:var(--warning)}
 .role-badge[data-role=teacher]{background:var(--primary-light);color:#a5a0ff}
 .role-badge[data-role=student]{background:rgba(34,211,165,.15);color:var(--success)}
+/* hover của nút xanh: bản cũ (#15803d) làm chữ tối khó đọc */
+.btn-success:hover{background:#1bb08a}
+/* toast + hộp xác nhận dùng chung (api.js) */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100vw - 32px);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;background:var(--surface2);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow)}
+.toast.err{background:#be123c;color:#fff;border-color:transparent}
+@media(max-width:768px){.toast{bottom:84px}}
+.dlg-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.6)}
+.dlg{width:100%;max-width:400px;padding:22px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow)}
+.dlg h3{font-size:17px;margin-bottom:8px;color:var(--text)}
+.dlg p{font-size:14px;color:var(--muted);line-height:1.5}
+.dlg-btns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.dlg-btns button{width:auto;padding:10px 18px;border-radius:10px;border:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;color:#fff}
+.dlg-cancel{background:var(--surface2)}
+.dlg-ok{background:var(--primary-dark)}
+.dlg-ok.danger{background:#e11d48}

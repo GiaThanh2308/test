@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="css/nav.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
   <style>
     :root {
       --bg: #0f1117;
@@ -16,7 +16,7 @@
       --surface2: #22263a;
       --border: rgba(255,255,255,0.07);
       --text: #e8eaf0;
-      --text-muted: #7c82a0;
+      --text-muted: #9aa0bc;
       --primary: #6c63ff;
       --primary-light: rgba(108,99,255,0.15);
       --green: #22d3a5;
@@ -386,7 +386,7 @@
       <div class="stat-card">
         <div class="stat-header">
           <div class="stat-icon" style="background:var(--primary-light); color:var(--primary)">
-            <i class="fa-solid fa-users"></i>
+            <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
         </div>
         <div>
@@ -489,7 +489,7 @@
         <div class="card-header">
           <div>
             <div class="card-title">Hoạt động gần đây</div>
-            <div class="card-sub">Cập nhật real-time</div>
+            <div class="card-sub">Tự cập nhật mỗi 60 giây</div>
           </div>
           <div style="width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green)"></div>
         </div>
@@ -510,7 +510,7 @@
   const COLORS = ['#6c63ff','#f97316','#f43f5e','#38bdf8','#22d3a5'];
   const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const ini = n => (n||'?').trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase();
-  const tip = { backgroundColor:'#22263a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8eaf0', bodyColor:'#7c82a0', padding:10 };
+  const tip = { backgroundColor:'#22263a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8eaf0', bodyColor:'#9aa0bc', padding:10 };
   const get = async p => { const r = await apiFetch(p); if (!r.ok) throw new Error(p); return r.json(); };
   const ago = iso => {
     const d = new Date(iso && !/Z|\+/.test(iso) ? iso + 'Z' : iso), m = Math.max(0, Math.round((Date.now() - d) / 60000));
@@ -525,18 +525,22 @@
   }
   async function buildLineChart() {
     const d = await get('/stats/daily?days=7');
+    if (typeof Chart === 'undefined') { document.querySelector('.chart-wrap').innerHTML = empty('Không tải được thư viện biểu đồ — kiểm tra kết nối mạng'); return; }
+    Chart.getChart(lineChart)?.destroy();
     const ctx = lineChart.getContext('2d'), g = ctx.createLinearGradient(0,0,0,220);
     g.addColorStop(0,'rgba(108,99,255,0.35)'); g.addColorStop(1,'rgba(108,99,255,0)');
     new Chart(ctx, { type:'line', data:{ labels:d.map(x=>x.date), datasets:[{ label:'Vi phạm', data:d.map(x=>x.count),
       borderColor:'#6c63ff', borderWidth:2.5, pointBackgroundColor:'#6c63ff', pointRadius:4, pointHoverRadius:6, fill:true, backgroundColor:g, tension:.42 }]},
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{...tip, callbacks:{label:c=>` ${c.raw} vi phạm`}} },
-        scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0'}}, y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0',precision:0}} } } });
+        scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#9aa0bc'}}, y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#9aa0bc',precision:0}} } } });
   }
   async function buildDonutChart() {
     const d = (await get('/stats/by-type')).sort((a,b)=>b.count-a.count), list = document.getElementById('vtype-list');
     const total = d.reduce((s,v)=>s+v.count,0);
+    const hasChart = typeof Chart !== 'undefined';
+    if (hasChart) Chart.getChart(donutChart)?.destroy(); else donutChart.style.display = 'none';
     if (!total) { list.innerHTML = empty('Chưa có dữ liệu'); return; }
-    new Chart(donutChart.getContext('2d'), { type:'doughnut', data:{ labels:d.map(v=>v.type),
+    if (hasChart) new Chart(donutChart.getContext('2d'), { type:'doughnut', data:{ labels:d.map(v=>v.type),
       datasets:[{ data:d.map(v=>v.count), backgroundColor:d.map((_,i)=>COLORS[i%5]), borderWidth:0, hoverOffset:6 }]},
       options:{ cutout:'72%', plugins:{ legend:{display:false}, tooltip:tip } } });
     list.innerHTML = d.map((v,i)=>`<div class="vtype-item"><div class="vtype-dot" style="background:${COLORS[i%5]}"></div>
@@ -562,7 +566,9 @@
   }
   window.addEventListener('DOMContentLoaded', () => {
     if (!isTeacher()) return;
-    [loadStats, buildLineChart, buildDonutChart, buildTopViolators, buildFeed].forEach(fn => fn().catch(e => console.warn(e)));
+    const refresh = () => [loadStats, buildLineChart, buildDonutChart, buildTopViolators, buildFeed].forEach(fn => fn().catch(e => console.warn(e)));
+    refresh();
+    setInterval(() => { if (!document.hidden) refresh(); }, 60000);
     const d = new Date(), days = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
     document.querySelector('.topbar-sub').textContent = `${days[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
   });

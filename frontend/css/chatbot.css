@@ -114,3 +114,4 @@
   .chat-main   { height: 65vh; }
   .chat-sidebar { display: none; }
 }
+.shortcut-btn:disabled,.chat-input input:disabled{opacity:.5;cursor:not-allowed}

@@ -337,3 +337,20 @@ button:active {
   position: relative;
   z-index: 2;
 }
+/* ── Giao diện tối đồng bộ với phần còn lại của app ── */
+body{font-family:'Inter',system-ui,sans-serif!important;background:#0f1117!important}
+.login-panel-right{background:#0f1117!important}
+.login-card{background:transparent!important;box-shadow:none!important;border:0!important;color:#e8eaf0}
+.login-card h1,.login-logo-mini span{color:#e8eaf0!important}
+.login-logo-mini i{color:#a5a0ff!important}
+.login-subtitle,.login-footer,.input-group label{color:#9aa0bc!important}
+.input-icon-wrap{position:relative}
+.input-icon{color:#9aa0bc!important}
+.input-group input{background:#1a1d27!important;border:1px solid rgba(255,255,255,.12)!important;color:#e8eaf0!important;padding-right:44px!important}
+.input-group input::placeholder{color:#9aa0bc!important}   /* trước đây #bbb trên #fafafa chỉ 1.8:1 */
+.input-group input:focus{background:#22263a!important;border-color:#6c63ff!important;box-shadow:0 0 0 3px rgba(108,99,255,.25)!important}
+#loginBtn{background:#5a52e0!important;color:#fff!important}
+#loginBtn:hover:not(:disabled){background:#4b44c4!important}
+#loginMessage{color:#ff7a93!important}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#9aa0bc;cursor:pointer;display:grid;place-items:center}
+.pw-toggle:hover{color:#e8eaf0;background:rgba(255,255,255,.08)}

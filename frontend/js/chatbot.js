@@ -5,13 +5,23 @@ requireTeacher();
 renderNav("chatbot");
 
 const chatHistory = []; // lịch sử hội thoại gửi lên backend
+let sending = false;
+
+/** Khóa ô nhập + các nút gửi trong lúc chờ trả lời để không gửi chồng nhiều câu. */
+function setBusy(on) {
+  sending = on;
+  document.getElementById("sendBtn").disabled = on;
+  document.getElementById("chatInput").disabled = on;
+  document.querySelectorAll(".shortcut-btn").forEach((b) => (b.disabled = on));
+}
 const GREETING_HTML = document.getElementById("chatMessages").innerHTML; // lời chào có sẵn trong HTML, dùng lại khi xoá hội thoại
 
 async function sendMessage() {
   const input   = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const text    = input.value.trim();
-  if (!text) return;
+  if (!text || sending) return;
+  setBusy(true);
 
   appendMsg(text, "user");
   chatHistory.push({ role: "user", content: text });
@@ -45,7 +55,7 @@ async function sendMessage() {
     appendMsg("❌ Không kết nối được server", "bot");
     chatHistory.pop();
   } finally {
-    sendBtn.disabled = false;
+    setBusy(false);
     input.focus();
   }
 }
@@ -136,6 +146,7 @@ function clearChat() {
 }
 
 function quickAsk(text) {
+  if (sending) return;
   document.getElementById("chatInput").value = text;
   sendMessage();
 }
@@ -144,7 +155,7 @@ function quickAsk(text) {
 async function searchStudent() {
   const input = document.getElementById("studentSearch");
   const q = input.value.trim();
-  if (!q) return;
+  if (!q || sending) return;
 
   appendMsg(`Tra cứu học sinh: ${q}`, "user");
   const typingEl = appendTyping();

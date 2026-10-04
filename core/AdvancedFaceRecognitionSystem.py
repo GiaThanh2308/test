@@ -16,6 +16,11 @@ def _read_image(path: str):
     return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 
+def _by_size(faces):
+    """Khuôn mặt to nhất (gần camera nhất) đứng đầu."""
+    return sorted(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]), reverse=True)
+
+
 def iter_people(main_dir: str):
     """Duyệt known_faces ở mọi độ sâu: thư mục nào có ảnh = 1 người.
     Trả về (nhãn, thư mục, danh sách ảnh); nhãn = "<tên>_<lớp>" (lớp = thư mục cha)."""
@@ -63,6 +68,8 @@ class AdvancedFaceRecognitionSystem:
             faces = self.app.get(img)
             if not faces:
                 print(f"⚠️ Không phát hiện khuôn mặt: {path}")
+            elif len(faces) > 1:
+                print(f"ℹ️ Ảnh có {len(faces)} khuôn mặt, lấy tất cả: {path}")
             encs.extend(f.embedding for f in faces)
         return encs
 
@@ -111,7 +118,7 @@ class AdvancedFaceRecognitionSystem:
 
     def recognize_image(self, img) -> list[dict]:
         results = []
-        for face in self.app.get(img):
+        for face in _by_size(self.app.get(img)):
             name, score = self._match(face)
             results.append({"name": name, "score": float(score)})
         return results

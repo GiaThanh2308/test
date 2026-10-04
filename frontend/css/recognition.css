@@ -112,3 +112,17 @@
   .toast{bottom:84px}
 }
 @media(prefers-reduced-motion:reduce){.sweep::before{animation-duration:3s}}
+/* ── Sửa lỗi hiển thị ── */
+.cam-badge{inset:0;margin:auto}                                   /* trước đây nằm lệch góc trên-trái */
+.cam-stage[data-state=ok] .cam-badge,.cam-stage[data-state=unknown] .cam-badge{color:#06281f}  /* dấu trắng trên xanh/cam chỉ 1.9–2.8:1 */
+.cam-status{max-width:calc(100% - 140px)}
+.cam-status #statusText{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.btn-save{background:#e11d48}
+.btn-save:hover{background:#be123c}
+.btn-save:disabled{opacity:.45;cursor:not-allowed}
+.toast.err{background:#be123c}
+.res-conf{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;font-weight:600;line-height:1.4}
+.res-conf.ok{color:#22d3a5}
+.res-conf.warn{color:#f97316}
+.res-confirm{display:flex;gap:10px;align-items:center;font-size:13.5px;cursor:pointer}
+.res-confirm input{width:18px!important;height:18px;padding:0!important;flex-shrink:0;accent-color:var(--primary)}

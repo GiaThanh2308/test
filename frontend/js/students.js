@@ -137,14 +137,14 @@ function renderTable(students, keepPage = false) {
   }
   const start = (page - 1) * PAGE_SIZE;
   tbody.innerHTML = viewList.slice(start, start + PAGE_SIZE).map((s, i) => {
-    const img = apiAssetUrl(s.face_image_url, { withToken: true });
+    const img = s.face_image_url || "";
     return `
     <tr>
       <td style="color:var(--gray-400)">${start + i + 1}</td>
       <td><span class="badge badge-blue">${escapeHtml(s.student_code)}</span></td>
       <td>
         <div class="stu-cell">
-          <span class="stu-thumb">${escapeHtml(initials(s.full_name))}${img ? `<img loading="lazy" decoding="async" src="${escapeHtml(img)}" alt="" onerror="this.remove()">` : ""}</span>
+          <span class="stu-thumb">${escapeHtml(initials(s.full_name))}${img ? `<img decoding="async" data-auth-src="${escapeHtml(img)}" alt="">` : ""}</span>
           <strong>${escapeHtml(s.full_name)}</strong>
         </div>
       </td>
@@ -152,12 +152,13 @@ function renderTable(students, keepPage = false) {
       <td style="font-size:13px">${escapeHtml(s.phone) || "—"}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-sm edit-btn"   onclick="openEdit(${s.id})"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn-sm delete-btn" onclick="deleteStudent(${s.id})"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn-sm edit-btn" title="Sửa" aria-label="Sửa ${escapeHtml(s.full_name)}"   onclick="openEdit(${s.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn-sm delete-btn" title="Xóa" aria-label="Xóa ${escapeHtml(s.full_name)}" onclick="deleteStudent(${s.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
     </tr>`;
   }).join("");
+  hydrateAuthImages(tbody);
   renderPager(viewList.length, pages);
 }
 
@@ -223,7 +224,7 @@ async function saveStudent() {
   };
 
   if (!body.full_name || !body.class_name) {
-    alert("Vui lòng điền đầy đủ thông tin bắt buộc (*)"); return;
+    toast("Vui lòng điền Họ tên và Lớp", true); return;
   }
 
   try {
@@ -233,22 +234,29 @@ async function saveStudent() {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      alert(err.detail || "Lỗi khi lưu học sinh"); return;
+      toast(err.detail || "Lỗi khi lưu học sinh", true); return;
     }
     closeModal();
+    toast("Đã lưu học sinh");
     loadStudents();
-  } catch { alert("Lỗi kết nối server"); }
+  } catch { toast("Lỗi kết nối server", true); }
 }
 
 async function deleteStudent(id) {
   const s    = allStudents.find(x => x.id === id);
   const name = s ? s.full_name : `ID ${id}`;
-  if (!confirm(`Xóa học sinh "${name}"? Tất cả vi phạm liên quan cũng sẽ bị xóa.`)) return;
+  const ok = await confirmDialog({
+    title: "Xóa học sinh",
+    message: `Xóa "${name}"? Toàn bộ vi phạm của học sinh này cũng bị xóa, và hồ sơ sẽ không tự tạo lại khi đồng bộ.`,
+    okText: "Xóa", danger: true,
+  });
+  if (!ok) return;
   try {
     const res = await apiFetch(`/students/${id}`, { method: "DELETE" });
-    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(err.detail || "Xóa thất bại"); return; }
+    if (!res.ok) { const err = await res.json().catch(() => ({})); toast(err.detail || "Xóa thất bại", true); return; }
+    toast("Đã xóa học sinh");
     loadStudents();
-  } catch { alert("Lỗi kết nối server"); }
+  } catch { toast("Lỗi kết nối server", true); }
 }
 
 if (isTeacher()) loadStudents(); // student đang bị chuyển trang, không gọi API nữa
@@ -261,13 +269,17 @@ async function importFromFolders() {
   try {
     const res  = await apiFetch("/import-from-folders", { method: "POST" });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { alert("Lỗi: " + (data.detail || "Không xác định")); return; }
-    alert(data.message + (data.errors?.length ? "\n\nLỗi:\n" + data.errors.join("\n") : ""));
+    if (!res.ok) { toast("Lỗi: " + (data.detail || "Không xác định"), true, 6000); return; }
+    toast(data.message, !!data.errors?.length, 7000);
+    if (data.errors?.length) console.error(data.errors);
     loadStudents();
   } catch {
-    alert("Không kết nối được server");
+    toast("Không kết nối được server", true);
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Đồng bộ lại';
   }
 }
+// Esc hoặc bấm nền tối để đóng hộp thoại thêm/sửa
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+document.getElementById("studentModal").addEventListener("mousedown", (e) => { if (e.target.id === "studentModal") closeModal(); });

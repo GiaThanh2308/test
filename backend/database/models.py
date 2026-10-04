@@ -44,3 +44,9 @@ class Violation(Base):
     created_at     = Column(DateTime(timezone=True), default=utcnow, index=True)
 
     student = relationship("Student", back_populates="violations")
+class IgnoredLabel(Base):
+    """Nhãn khuôn mặt của học sinh đã bị xóa — để "Đồng bộ lại" không tạo lại hồ sơ."""
+    __tablename__ = "ignored_labels"
+
+    id    = Column(Integer, primary_key=True)
+    label = Column(String, unique=True, index=True, nullable=False)

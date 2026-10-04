@@ -188,7 +188,7 @@ body { background: #f4f7fb; color: #111827; }
 /* compat with old class names */
 .stat-card.student { border-left: 4px solid var(--success); }
 .stat-card.face    { border-left: 4px solid var(--primary); }
-.stat-card.plate   { border-left: 4px solid var(--warning); }
+.stat-card.klass   { border-left: 4px solid var(--warning); }
 
 /* ======================
    CONTENT CARDS

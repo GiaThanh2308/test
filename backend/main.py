@@ -1,7 +1,8 @@
 """AI School API — nhận diện khuôn mặt, quản lý học sinh/vi phạm, thống kê, chatbot."""
 import os
 import re
-from collections import Counter
+import time
+from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -27,7 +28,7 @@ from backend.auth import (  # noqa: E402
     hash_password, require_admin, require_teacher, verify_password,
 )
 from backend.database.db import SessionLocal, engine, push_db  # noqa: E402
-from backend.database.models import Base, Student, User, Violation  # noqa: E402
+from backend.database.models import Base, IgnoredLabel, Student, User, Violation  # noqa: E402
 from backend.face_folders import CodeAllocator, FaceFolderIndex, plain_text, sync_students  # noqa: E402
 from backend.schemas.student import (  # noqa: E402
     ChatRequest, CreateUserRequest, StudentCreate, StudentUpdate, ViolationCreate,
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
     if os.getenv("AUTO_SYNC_STUDENTS", "1") != "0":
         db = SessionLocal()
         try:
-            result = sync_students(db, Student, FACE_INDEX)
+            result = sync_students(db, Student, FACE_INDEX, ignored_labels(db))
             if result["created"] or result["recoded"]:
                 push_db()
             print(f"👥 Đồng bộ học sinh: +{len(result['created'])} mới, {len(result['recoded'])} đổi mã, "
@@ -139,16 +140,13 @@ def violation_counts(db: Session) -> dict:
     }
 
 
-def top_violators(db: Session, limit: int):
-    return (
-        db.query(Student.full_name, Student.class_name, Student.student_code,
-                 func.count(Violation.id).label("count"))
-        .join(Violation, Student.id == Violation.student_id)
-        .group_by(Student.id)
-        .order_by(func.count(Violation.id).desc())
-        .limit(limit)
-        .all()
-    )
+def top_violators(db: Session, limit: int, since: Optional[datetime] = None):
+    q = (db.query(Student.full_name, Student.class_name, Student.student_code,
+                  func.count(Violation.id).label("count"))
+         .join(Violation, Student.id == Violation.student_id))
+    if since is not None:
+        q = q.filter(Violation.created_at >= since)
+    return q.group_by(Student.id).order_by(func.count(Violation.id).desc()).limit(limit).all()
 
 
 def face_image_url(face_label: Optional[str]) -> Optional[str]:
@@ -177,19 +175,50 @@ def ensure_unique(db: Session, student_id: Optional[int], code: Optional[str], l
             raise HTTPException(status_code=400, detail=msg)
 
 
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+LOGIN_MAX_FAILS, LOGIN_WINDOW = 5, 300  # tối đa 5 lần sai / 5 phút cho mỗi (IP, tài khoản)
+_login_fails: dict[str, list[float]] = defaultdict(list)
+
+
+def client_ip(request: Request) -> str:
+    """Qua Cloudflare Tunnel IP thật nằm ở header cf-connecting-ip."""
+    return (request.headers.get("cf-connecting-ip")
+            or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            or (request.client.host if request.client else "?"))
+
+
+def login_blocked(key: str) -> int:
+    """Số giây còn bị khóa (0 = được thử)."""
+    now = time.time()
+    hits = [t for t in _login_fails.get(key, []) if now - t < LOGIN_WINDOW]
+    if hits:
+        _login_fails[key] = hits
+    else:
+        _login_fails.pop(key, None)
+    return int(LOGIN_WINDOW - (now - hits[0])) + 1 if len(hits) >= LOGIN_MAX_FAILS else 0
+
+
+def ignored_labels(db: Session) -> set:
+    return {label for (label,) in db.query(IgnoredLabel.label).all()}
+
+
+def forget_ignored(db: Session, label: Optional[str]):
+    if label:
+        db.query(IgnoredLabel).filter(IgnoredLabel.label == label).delete()
+
+
 # ── Ảnh khuôn mặt ────────────────────────────────────────────────────────────
 @app.get("/face-image/{face_label}")
-def serve_face_image(face_label: str, request: Request, token: Optional[str] = Query(default=None)):
-    """Cần đăng nhập. Thẻ <img> không gửi được header nên cho phép ?token=."""
+def serve_face_image(face_label: str, request: Request):
+    """Cần đăng nhập (header Authorization). Frontend tải ảnh bằng fetch rồi dựng blob nên token không nằm trong URL."""
     auth = request.headers.get("authorization", "")
-    raw  = auth[7:] if auth.lower().startswith("bearer ") else token
-    if not raw:
+    if not auth.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Cần đăng nhập")
-    decode_token(raw)
+    decode_token(auth[7:])
     path = FACE_INDEX.image_path(face_label)
     if not path:
         raise HTTPException(status_code=404, detail="Không tìm thấy ảnh")
-    return FileResponse(path)
+    return FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})
 
 
 # ── Nhận diện ────────────────────────────────────────────────────────────────
@@ -199,7 +228,10 @@ def recognize_face(  # def (không async): AI nặng chạy ở thread riêng, k
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    img = cv2.imdecode(np.frombuffer(file.file.read(), np.uint8), cv2.IMREAD_COLOR)
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Ảnh quá lớn (tối đa 8 MB)")
+    img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         raise HTTPException(status_code=400, detail="Không đọc được ảnh")
 
@@ -207,17 +239,17 @@ def recognize_face(  # def (không async): AI nặng chạy ở thread riêng, k
     for item in system.recognize_image(img):
         name, score = item["name"], float(item["score"])
         if name == "unknown":
-            results.append({"id": None, "face_label": "unknown", "score": score, "message": "Không nhận diện được"})
+            results.append({"id": None, "face_label": "unknown", "score": score, "status": "unknown", "message": "Không nhận diện được"})
             continue
         student = db.query(Student).filter(Student.face_label == name).first()
         if student:
-            results.append({**student_dict(student), "score": score})
+            results.append({**student_dict(student), "score": score, "status": "ok"})
         else:
-            results.append({"id": None, "face_label": name, "score": score, "message": "Chưa có hồ sơ học sinh"})
+            results.append({"id": None, "face_label": name, "score": score, "status": "no_profile", "message": "Chưa có hồ sơ học sinh"})
 
     if current_user["role"] not in TEACHER_ROLES:
         # student chỉ xem họ tên + lớp + ảnh + độ khớp; ẩn mã HS, SĐT, nhãn khuôn mặt
-        keep = ("id", "full_name", "class_name", "face_image_url", "score", "message")
+        keep = ("id", "full_name", "class_name", "face_image_url", "score", "status", "message")
         results = [{k: r[k] for k in keep if k in r} for r in results]
     return {"faces": results}
 
@@ -235,6 +267,7 @@ def create_student(body: StudentCreate, db: Session = Depends(get_db), _user: di
     if not code:  # không nhập mã → tự cấp theo lớp: HS + khối + lớp + STT
         code = CodeAllocator(c for (c,) in db.query(Student.student_code).all()).allocate(body.class_name)
     ensure_unique(db, None, code, face_label)
+    forget_ignored(db, face_label)
     student = Student(student_code=code, full_name=body.full_name,
                       class_name=body.class_name, face_label=face_label, phone=body.phone)
     db.add(student)
@@ -258,6 +291,7 @@ def update_student(student_id: int, body: StudentUpdate, db: Session = Depends(g
     if "face_label" in changes:
         changes["face_label"] = (changes["face_label"] or "").strip() or None
     ensure_unique(db, student_id, changes.get("student_code"), changes.get("face_label"))  # bản cũ không kiểm tra mã trùng → lỗi 500
+    forget_ignored(db, changes.get("face_label"))
     for field, value in changes.items():
         setattr(student, field, value)
     db.commit()
@@ -270,6 +304,8 @@ def delete_student(student_id: int, db: Session = Depends(get_db), _user: dict =
     student = db.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Không tìm thấy học sinh")
+    if student.face_label and student.face_label not in ignored_labels(db):
+        db.add(IgnoredLabel(label=student.face_label))  # "Đồng bộ lại" sẽ bỏ qua nhãn này
     db.delete(student)
     db.commit()
     push_db()
@@ -282,7 +318,7 @@ def sync_from_folders(db: Session = Depends(get_db), _user: dict = Depends(requi
     if not os.path.isdir(KNOWN_FACES_DIR):
         raise HTTPException(status_code=404, detail=f"Không tìm thấy thư mục: {KNOWN_FACES_DIR}")
     learned = system.rescan_known_faces(KNOWN_FACES_DIR)  # trước đây chỉ tạo hồ sơ, người mới không bao giờ được nhận diện
-    result = sync_students(db, Student, refresh_face_index())
+    result = sync_students(db, Student, refresh_face_index(), ignored_labels(db))
     if result["created"] or result["recoded"]:
         push_db()
     return {
@@ -357,16 +393,23 @@ def stats_by_type(db: Session = Depends(get_db), _user: dict = Depends(require_t
 def stats_top_violators(limit: int = Query(default=5, ge=1, le=50), db: Session = Depends(get_db),
                         _user: dict = Depends(require_teacher)):
     return [{"full_name": r.full_name, "class_name": r.class_name,
-             "student_code": r.student_code, "count": r.count} for r in top_violators(db, limit)]
+             "student_code": r.student_code, "count": r.count}
+            for r in top_violators(db, limit, period_starts()["month"])]  # nhãn "Tháng này" trên dashboard
 
 
 # ── Đăng nhập / người dùng ───────────────────────────────────────────────────
 @app.post("/login")
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    key = f"{client_ip(request)}|{form.username.strip().lower()}"
+    wait = login_blocked(key)
+    if wait:
+        raise HTTPException(status_code=429, detail=f"Sai quá nhiều lần. Thử lại sau {wait // 60 + 1} phút.")
     user = db.query(User).filter(User.username == form.username).first()
     if not user or not verify_password(form.password, user.hashed_password):
+        _login_fails[key].append(time.time())
         raise HTTPException(status_code=401, detail="Sai tài khoản hoặc mật khẩu",
                             headers={"WWW-Authenticate": "Bearer"})
+    _login_fails.pop(key, None)
     token = create_access_token({"sub": user.username, "role": user.role})
     return {"access_token": token, "token_type": "bearer", "role": user.role, "username": user.username}
 
@@ -458,8 +501,11 @@ def chatbot_lookup(q: str = Query(..., min_length=1, max_length=100), db: Sessio
 # ── Chatbot (Groq) ───────────────────────────────────────────────────────────
 def build_chat_context(db: Session, lookup: str = "") -> str:
     c = violation_counts(db)
-    top = "\n".join(f"  {i}. {r.full_name} ({r.student_code} - {r.class_name}): {r.count} vi phạm"
-                    for i, r in enumerate(top_violators(db, 5), 1)) or "  (chưa có dữ liệu)"
+    st = period_starts()
+    top_of = lambda since: "\n".join(  # noqa: E731
+        f"  {i}. {r.full_name} ({r.student_code} - {r.class_name}): {r.count} vi phạm"
+        for i, r in enumerate(top_violators(db, 5, since), 1)) or "  (chưa có dữ liệu)"
+    top_week, top_month, top_all = top_of(st["week"]), top_of(st["month"]), top_of(None)
     types = db.query(Violation.violation_type, func.count(Violation.id)).group_by(Violation.violation_type).all()
     type_list = "\n".join(f"  - {t}: {n} lần" for t, n in types) or "  (chưa có dữ liệu)"
     recent = "\n".join(
@@ -485,8 +531,14 @@ TỔNG QUAN:
 - Vi phạm tháng này: {c['month_violations']}
 - Tổng vi phạm toàn thời gian: {c['total_violations']}
 
-HỌC SINH VI PHẠM NHIỀU NHẤT:
-{top}
+HỌC SINH VI PHẠM NHIỀU NHẤT TUẦN NÀY:
+{top_week}
+
+HỌC SINH VI PHẠM NHIỀU NHẤT THÁNG NÀY:
+{top_month}
+
+HỌC SINH VI PHẠM NHIỀU NHẤT TOÀN THỜI GIAN:
+{top_all}
 
 PHÂN LOẠI VI PHẠM:
 {type_list}
@@ -519,14 +571,20 @@ async def chatbot(req: ChatRequest, db: Session = Depends(get_db), _user: dict =
         {"role": "assistant" if m.role == "assistant" else "user", "content": m.content}
         for m in req.messages[-20:]  # giới hạn lịch sử để không vượt giới hạn token / tốn phí
     ]
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            json={"model": GROQ_MODEL, "messages": messages, "max_tokens": 512, "temperature": 0.3},
-            headers={"Authorization": f"Bearer {api_key}"}, timeout=30.0,
-        )
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                json={"model": GROQ_MODEL, "messages": messages, "max_tokens": 512, "temperature": 0.3},
+                headers={"Authorization": f"Bearer {api_key}"}, timeout=30.0,
+            )
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Không kết nối được dịch vụ AI. Kiểm tra mạng rồi thử lại.")
     if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Groq API lỗi {resp.status_code}: {resp.text[:300]}")
+        print(f"⚠️ Groq lỗi {resp.status_code}: {resp.text[:300]}")  # chi tiết chỉ ghi log server
+        friendly = {429: "Chatbot đang quá tải hoặc đã hết lượt dùng, thử lại sau ít phút.",
+                    401: "Khóa GROQ_API_KEY không hợp lệ — báo admin kiểm tra."}
+        raise HTTPException(status_code=502, detail=friendly.get(resp.status_code, f"Chatbot tạm thời không phản hồi (mã {resp.status_code})."))
     try:
         return {"reply": resp.json()["choices"][0]["message"]["content"]}
     except (KeyError, IndexError, ValueError):

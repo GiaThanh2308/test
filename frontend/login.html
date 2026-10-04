@@ -6,6 +6,7 @@
     <title>Đăng nhập — AI School</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/login.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -18,9 +19,6 @@
         <div class="slider">
           <div class="slide active">
             <img src="images/truong.jfif" alt="" />
-          </div>
-          <div class="slide">
-            <img src="images/sukien.jpg" alt="" />
           </div>
         </div>
 
@@ -55,7 +53,7 @@
                 type="text"
                 id="username"
                 placeholder="Nhập username"
-                onkeydown="if (event.key === 'Enter') login();"
+                onkeydown="if (event.key === 'Enter') document.getElementById('password').focus();"
               />
             </div>
           </div>
@@ -70,6 +68,8 @@
                 placeholder="Nhập mật khẩu"
                 onkeydown="if (event.key === 'Enter') login();"
               />
+              <button type="button" class="pw-toggle" aria-label="Hiện/ẩn mật khẩu"
+                onclick="const p=document.getElementById('password'),h=p.type==='password';p.type=h?'text':'password';this.firstElementChild.className='fa-solid '+(h?'fa-eye-slash':'fa-eye')"><i class="fa-solid fa-eye"></i></button>
             </div>
           </div>
 

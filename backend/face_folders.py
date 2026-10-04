@@ -115,10 +115,11 @@ class CodeAllocator:
         return code
 
 
-def sync_students(db, Student, index: FaceFolderIndex) -> dict:
+def sync_students(db, Student, index: FaceFolderIndex, ignored=()) -> dict:
     """Thêm học sinh còn thiếu và đổi mã AUTO_xxx cũ sang mã mới, bằng MỘT transaction.
     Chạy lại nhiều lần vẫn an toàn."""
     all_students = db.query(Student).all()
+    ignored = set(ignored or ())  # nhãn của học sinh đã bị xóa
     labels = {s.face_label for s in all_students if s.face_label}
     pairs = {(s.full_name, s.class_name) for s in all_students}
     allocator = CodeAllocator(s.student_code for s in all_students)
@@ -130,6 +131,9 @@ def sync_students(db, Student, index: FaceFolderIndex) -> dict:
             pending.append((s.class_name, s.full_name, s))
     for name, cls in index.students:
         label = f"{name}_{cls}"
+        if label in ignored:
+            skipped.append(f"{name} ({cls}) — đã xóa trước đó, bỏ qua")
+            continue
         if label in labels or (name, cls) in pairs:
             skipped.append(f"{name} ({cls}) — đã có hồ sơ")
             continue

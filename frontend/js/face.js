@@ -9,6 +9,7 @@ let stream = null, facing = "user", busy = false, freezeUrl = null;
 
 const TYPES = ["Không đồng phục","Đi trễ","Dùng điện thoại","Không đeo thẻ","Không đội mũ bảo hiểm","Gây mất trật tự","Khác"];
 const BADGE = { ok:"fa-check", unknown:"fa-question", fail:"fa-xmark" };
+const CONF_OK = 65; // % độ khớp từ mức này mới coi là chắc chắn; thấp hơn phải xác nhận thủ công
 const MIN_SCAN_MS = 1400; // quét tối thiểu để animation đủ đẹp dù server trả nhanh
 
 const esc = escapeHtml;
@@ -21,17 +22,23 @@ function setState(state, text) {
   if (BADGE[state]) $("camBadge").innerHTML = `<i class="fa-solid ${BADGE[state]}"></i>`;
 }
 
-function toast(msg, err = false) {
-  document.querySelectorAll(".toast").forEach(t => t.remove());
-  const t = document.createElement("div");
-  t.className = "toast" + (err ? " err" : "");
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
+// ── Camera ──────────────────────────────────────────────
+function cameraError(e) {
+  const map = {
+    NotAllowedError: "Bạn chưa cho phép dùng camera. Bấm biểu tượng ổ khóa trên thanh địa chỉ và bật Camera.",
+    NotFoundError: "Không tìm thấy camera trên thiết bị này.",
+    NotReadableError: "Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.",
+    OverconstrainedError: "Camera không hỗ trợ cấu hình yêu cầu.",
+    SecurityError: "Trình duyệt chặn camera. Hãy mở trang bằng HTTPS.",
+  };
+  return map[e.name] || "Không mở được camera (" + (e.message || e.name) + ")";
 }
 
-// ── Camera ──────────────────────────────────────────────
 async function startCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    toast("Camera chỉ hoạt động trên HTTPS hoặc localhost. Hãy mở trang bằng địa chỉ https://", true, 6000);
+    return;
+  }
   try {
     if (stream) stream.getTracks().forEach(t => t.stop());
     stream = await navigator.mediaDevices.getUserMedia({
@@ -43,7 +50,7 @@ async function startCamera() {
     releaseFreeze();
     setState("live", "Đưa khuôn mặt vào khung");
   } catch (e) {
-    toast("Không mở được camera: " + (e.message || e.name), true);
+    toast(cameraError(e), true, 5000);
   }
 }
 
@@ -67,8 +74,10 @@ function releaseFreeze() {
 // Quay lại camera trực tiếp sau khi xem kết quả
 function resumeLive() {
   releaseFreeze();
-  if (stream) setState("live", "Đưa khuôn mặt vào khung");
-  else setState("idle");
+  if (stream) {
+    if (facing === "user") stage.setAttribute("data-mirror", ""); else stage.removeAttribute("data-mirror");
+    setState("live", "Đưa khuôn mặt vào khung");
+  } else setState("idle");
 }
 
 // ── Chụp: dừng ngay khung hình, rồi quét ────────────────
@@ -122,10 +131,14 @@ async function runRecognition(blob, name) {
     setState("fail", errMsg); renderEmpty("fa-circle-exclamation", errMsg, "Thử lại sau ít phút");
   } else if (!data.faces || !data.faces.length) {
     setState("fail", "Không thấy khuôn mặt"); renderEmpty("fa-user-slash", "Không nhận diện được", "Chụp lại rõ mặt hơn");
+  } else if (data.faces[0].status === "unknown") {
+    setState("fail", "Không nhận ra"); renderEmpty("fa-user-slash", "Không nhận ra khuôn mặt này", "Độ giống cao nhất chỉ " + Math.round(data.faces[0].score * 100) + "% — chưa đủ để kết luận");
   } else if (!data.faces[0].id) {
-    setState("unknown", "Chưa có hồ sơ"); renderEmpty("fa-circle-question", "Khuôn mặt chưa có hồ sơ", "Độ khớp: " + Math.round(data.faces[0].score * 100) + "%");
+    setState("unknown", "Chưa có hồ sơ");
+    renderEmpty("fa-circle-question", "Có ảnh khuôn mặt nhưng chưa có hồ sơ", IS_TEACHER ? "Vào trang Học sinh → Đồng bộ lại để tạo hồ sơ" : "Hãy báo giáo viên");
   } else {
     setState("ok", data.faces[0].full_name); renderStudent(data.faces[0]);
+    if (data.faces.length > 1) toast("Có " + data.faces.length + " khuôn mặt trong ảnh, đang hiển thị người rõ nhất.");
   }
   busy = false;
   $("shutter").disabled = false;
@@ -143,13 +156,13 @@ function renderEmpty(icon, title, sub) {
 }
 
 function renderStudent(s) {
-  const acc = Math.round(s.score * 100);
-  const col = acc >= 80 ? "#22d3a5" : acc >= 60 ? "#f97316" : "#f43f5e";
-  const img = apiAssetUrl(s.face_image_url, { withToken: true });
+  const acc = Math.round(s.score * 100), sure = acc >= CONF_OK;
+  const col = sure ? "#22d3a5" : "#f97316";
+  const img = s.face_image_url || "";
   $("studentProfile").innerHTML = `
     <div class="res-card">
       <div class="res-head">
-        <div class="res-avatar"><i class="fa-solid fa-user-graduate"></i>${img ? `<img src="${esc(img)}" alt="" onerror="this.remove()">` : ""}</div>
+        <div class="res-avatar"><i class="fa-solid fa-user-graduate"></i>${img ? `<img data-auth-src="${esc(img)}" alt="">` : ""}</div>
         <div style="min-width:0">
           <div class="res-name">${esc(s.full_name)}</div>
           <div class="res-meta">${[s.class_name, s.student_code, s.phone].filter(Boolean).map(esc).join(" · ")}</div>
@@ -157,6 +170,8 @@ function renderStudent(s) {
         <div class="res-score" style="background:${col}22;color:${col}">${acc}%</div>
       </div>
       <div class="res-bar"><b style="width:${acc}%;background:${col}"></b></div>
+      <div class="res-conf ${sure ? "ok" : "warn"}"><i class="fa-solid ${sure ? "fa-circle-check" : "fa-triangle-exclamation"}"></i>
+        <span>${sure ? "Độ khớp cao" : "Độ khớp thấp — hãy đối chiếu ảnh hoặc hỏi lại học sinh trước khi ghi vi phạm"}</span></div>
       ${IS_TEACHER ? `
       <div>
         <div class="res-label">Loại vi phạm</div>
@@ -166,9 +181,11 @@ function renderStudent(s) {
         <div class="res-label">Ghi chú</div>
         <textarea id="violationNote" placeholder="Thêm ghi chú (không bắt buộc)..."></textarea>
       </div>
-      <button class="btn-save" id="saveBtn" onclick="saveViolation(${s.id})"><i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm</button>
+      ${sure ? "" : `<label class="res-confirm"><input type="checkbox" onchange="document.getElementById('saveBtn').disabled=!this.checked"> Tôi đã xác nhận đúng học sinh này</label>`}
+      <button class="btn-save" id="saveBtn" onclick="saveViolation(${s.id})" ${sure ? "" : "disabled"}><i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm</button>
       ` : ""}
     </div>`;
+  hydrateAuthImages($("studentProfile"));
   if (innerWidth <= 768) $("studentProfile").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function pickType(el) {
@@ -178,15 +195,19 @@ function pickType(el) {
 
 async function saveViolation(id) {
   const btn = $("saveBtn"), type = document.querySelector("#chips .chip.on")?.textContent || TYPES[0];
+  if (btn.disabled) return;
+  let saved = false;
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
   try {
     const res = await apiFetch("/violations", { method: "POST", body: JSON.stringify({ student_id: id, violation_type: type, note: $("violationNote").value }) });
     if (!res.ok) { const e = await res.json().catch(() => ({})); toast(e.detail || "Lỗi khi lưu vi phạm", true); return; }
     toast("Đã lưu vi phạm");
+    saved = true;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã lưu';  // giữ khóa để không bấm đúp ra 2 bản ghi
     $("violationNote").value = "";
     loadRecentViolations();
   } catch { toast("Lỗi kết nối server", true); }
-  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm'; }
+  finally { if (!saved) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu vi phạm'; } }
 }
 
 // ── Vi phạm gần đây ─────────────────────────────────────
