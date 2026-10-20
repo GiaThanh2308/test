@@ -49,7 +49,10 @@ function clearSession() {
   ["access_token", "username", "role"].forEach((k) => localStorage.removeItem(k));
 }
 
+/** options.timeout (ms) = tự hủy nếu server không trả lời kịp (ném lỗi có name "AbortError"). Mặc định: không giới hạn. */
 async function apiFetch(path, options = {}) {
+  const { timeout = 0, ...fetchOptions } = options;
+  options = fetchOptions;
   const headers = { ...(options.headers || {}) };
   if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -57,7 +60,14 @@ async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("access_token");
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const ctrl = timeout > 0 ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeout) : null;
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers, ...(ctrl ? { signal: ctrl.signal } : {}) });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   if (res.status === 401) {
     clearSession();
     location.href = "login.html";

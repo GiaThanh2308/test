@@ -5,6 +5,8 @@ pydantic>=2
 python-dotenv
 httpx
 python-multipart
+openpyxl
+pillow
 
 # Đăng nhập
 passlib[bcrypt]
@@ -17,5 +19,3 @@ numpy
 insightface
 onnxruntime
 faiss-cpu
-
-# (tuỳ chọn) đồng bộ school.db lên Hugging Face Dataset:  pip install huggingface_hub

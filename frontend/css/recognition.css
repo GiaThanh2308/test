@@ -126,3 +126,17 @@
 .res-conf.warn{color:#f97316}
 .res-confirm{display:flex;gap:10px;align-items:center;font-size:13.5px;cursor:pointer}
 .res-confirm input{width:18px!important;height:18px;padding:0!important;flex-shrink:0;accent-color:var(--primary)}
+/* ── Chọn nhiều lỗi, hoàn tác, ảnh đối chiếu, lỗi tải danh sách ── */
+.res-label small{text-transform:none;letter-spacing:0;font-weight:500;opacity:.8}
+.chip.done,.chip.done:hover{background:rgba(34,211,165,.14);color:#22d3a5;border-color:#22d3a5;cursor:default;opacity:1}
+.chip.done::before{content:"\2713\00a0"}
+.chip:focus-visible,.btn-save:focus-visible,.undo-btn:focus-visible{outline:2px solid #a5a0ff;outline-offset:2px}
+.res-shot{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);padding:8px 10px;border-radius:12px;background:var(--surface2)}
+.res-shot img{width:56px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0}
+.res-shot b{color:var(--text)}
+.undo-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(34,211,165,.12);color:#22d3a5;font-size:13px;font-weight:600}
+.undo-btn{width:auto;padding:7px 12px;border-radius:99px;font-size:13px;font-weight:700;background:transparent!important;color:#fff;border:1px solid rgba(255,255,255,.35);cursor:pointer;white-space:nowrap}
+.undo-btn:disabled{opacity:.5}
+.rv-del{width:32px;height:32px;padding:0;border-radius:8px;background:transparent!important;color:var(--muted);border:1px solid var(--border);cursor:pointer;flex-shrink:0}
+.rv-del:hover{color:#f43f5e;border-color:#f43f5e;transform:none}
+.link-btn{width:auto;display:inline;padding:0 4px;background:none!important;border:0;color:#a5a0ff;font:inherit;text-decoration:underline;cursor:pointer}

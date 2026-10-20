@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StudentCreate(BaseModel):
@@ -21,8 +21,9 @@ class StudentUpdate(BaseModel):
 
 class ViolationCreate(BaseModel):
     student_id: int
-    violation_type: str
-    note: str = ""
+    violation_types: list[str] = Field(min_length=1, max_length=10)  # chọn 1 hoặc nhiều lỗi có sẵn
+    note: str = Field(default="", max_length=500)
+    capture: Optional[str] = None  # tên ảnh chụp do /recognize-face trả về
 
 
 class ChatMessage(BaseModel):

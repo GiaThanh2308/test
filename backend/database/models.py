@@ -41,12 +41,8 @@ class Violation(Base):
     student_id     = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
     violation_type = Column(String, nullable=False)
     note           = Column(Text, default="")
+    recorded_by    = Column(String, nullable=True)  # tài khoản (ca trực) đã ghi lỗi
+    capture_path   = Column(String, nullable=True)  # ảnh chụp lúc ghi: "<yyyy-mm-dd>/<file>.jpg" trong data/capture
     created_at     = Column(DateTime(timezone=True), default=utcnow, index=True)
 
     student = relationship("Student", back_populates="violations")
-class IgnoredLabel(Base):
-    """Nhãn khuôn mặt của học sinh đã bị xóa — để "Đồng bộ lại" không tạo lại hồ sơ."""
-    __tablename__ = "ignored_labels"
-
-    id    = Column(Integer, primary_key=True)
-    label = Column(String, unique=True, index=True, nullable=False)

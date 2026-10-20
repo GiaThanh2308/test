@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="css/nav.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #0f1117;
@@ -16,7 +16,7 @@
       --surface2: #22263a;
       --border: rgba(255,255,255,0.07);
       --text: #e8eaf0;
-      --text-muted: #9aa0bc;
+      --text-muted: #7c82a0;
       --primary: #6c63ff;
       --primary-light: rgba(108,99,255,0.15);
       --green: #22d3a5;
@@ -87,6 +87,15 @@
 
     
     
+
+    .topbar { justify-content: space-between; }
+    .export-bar { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
+    .export-bar input[type=date] { background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 8px; font: inherit; color-scheme: dark; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    @media (max-width: 768px) { .export-bar label { display: none; } .topbar { height: auto; padding: 10px 16px; flex-wrap: wrap; } }
 
     .btn-ghost {
       background: transparent;
@@ -377,6 +386,11 @@
     <div>
       <div class="topbar-title">Dashboard</div>
       <div class="topbar-sub">—</div></div>
+    <div class="export-bar">
+      <label>Từ <input type="date" id="exFrom"></label>
+      <label>Đến <input type="date" id="exTo"></label>
+      <button class="btn btn-primary" id="exBtn" onclick="exportExcel()"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+    </div>
   </header>
 
   <!-- CONTENT -->
@@ -386,7 +400,7 @@
       <div class="stat-card">
         <div class="stat-header">
           <div class="stat-icon" style="background:var(--primary-light); color:var(--primary)">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+            <i class="fa-solid fa-users"></i>
           </div>
         </div>
         <div>
@@ -489,7 +503,7 @@
         <div class="card-header">
           <div>
             <div class="card-title">Hoạt động gần đây</div>
-            <div class="card-sub">Tự cập nhật mỗi 60 giây</div>
+            <div class="card-sub">Cập nhật real-time</div>
           </div>
           <div style="width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green)"></div>
         </div>
@@ -507,10 +521,13 @@
 <script src="js/api.js"></script>
 <script>
   requireAuth(); requireTeacher(); renderNav('dashboard');
-  const COLORS = ['#6c63ff','#f97316','#f43f5e','#38bdf8','#22d3a5'];
+  const COLORS = ['#6c63ff','#f97316','#f43f5e','#38bdf8','#22d3a5']; // dùng cho xếp hạng / hoạt động (tối đa 5 mục)
+  // Biểu đồ loại lỗi: 8 màu phân biệt rõ trên nền tối; lỗi từ hạng 8 trở đi gộp thành "Khác" (xám)
+  const TYPE_COLORS = ['#6c63ff','#f97316','#22d3a5','#f43f5e','#38bdf8','#facc15','#e879f9','#a3e635'];
+  const OTHER_COLOR = '#64748b';
   const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const ini = n => (n||'?').trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase();
-  const tip = { backgroundColor:'#22263a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8eaf0', bodyColor:'#9aa0bc', padding:10 };
+  const tip = { backgroundColor:'#22263a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8eaf0', bodyColor:'#7c82a0', padding:10 };
   const get = async p => { const r = await apiFetch(p); if (!r.ok) throw new Error(p); return r.json(); };
   const ago = iso => {
     const d = new Date(iso && !/Z|\+/.test(iso) ? iso + 'Z' : iso), m = Math.max(0, Math.round((Date.now() - d) / 60000));
@@ -525,26 +542,28 @@
   }
   async function buildLineChart() {
     const d = await get('/stats/daily?days=7');
-    if (typeof Chart === 'undefined') { document.querySelector('.chart-wrap').innerHTML = empty('Không tải được thư viện biểu đồ — kiểm tra kết nối mạng'); return; }
-    Chart.getChart(lineChart)?.destroy();
     const ctx = lineChart.getContext('2d'), g = ctx.createLinearGradient(0,0,0,220);
     g.addColorStop(0,'rgba(108,99,255,0.35)'); g.addColorStop(1,'rgba(108,99,255,0)');
     new Chart(ctx, { type:'line', data:{ labels:d.map(x=>x.date), datasets:[{ label:'Vi phạm', data:d.map(x=>x.count),
       borderColor:'#6c63ff', borderWidth:2.5, pointBackgroundColor:'#6c63ff', pointRadius:4, pointHoverRadius:6, fill:true, backgroundColor:g, tension:.42 }]},
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{...tip, callbacks:{label:c=>` ${c.raw} vi phạm`}} },
-        scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#9aa0bc'}}, y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#9aa0bc',precision:0}} } } });
+        scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0'}}, y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c82a0',precision:0}} } } });
   }
   async function buildDonutChart() {
-    const d = (await get('/stats/by-type')).sort((a,b)=>b.count-a.count), list = document.getElementById('vtype-list');
+    let d = (await get('/stats/by-type')).sort((a,b)=>b.count-a.count);
+    const list = document.getElementById('vtype-list');
     const total = d.reduce((s,v)=>s+v.count,0);
-    const hasChart = typeof Chart !== 'undefined';
-    if (hasChart) Chart.getChart(donutChart)?.destroy(); else donutChart.style.display = 'none';
     if (!total) { list.innerHTML = empty('Chưa có dữ liệu'); return; }
-    if (hasChart) new Chart(donutChart.getContext('2d'), { type:'doughnut', data:{ labels:d.map(v=>v.type),
-      datasets:[{ data:d.map(v=>v.count), backgroundColor:d.map((_,i)=>COLORS[i%5]), borderWidth:0, hoverOffset:6 }]},
+    if (d.length > TYPE_COLORS.length) {
+      const rest = d.slice(TYPE_COLORS.length - 1);
+      d = [...d.slice(0, TYPE_COLORS.length - 1), { type:'Khác (' + rest.length + ' loại)', count: rest.reduce((s,v)=>s+v.count,0), other:true }];
+    }
+    const col = d.map((v,i)=> v.other ? OTHER_COLOR : TYPE_COLORS[i]);
+    new Chart(donutChart.getContext('2d'), { type:'doughnut', data:{ labels:d.map(v=>v.type),
+      datasets:[{ data:d.map(v=>v.count), backgroundColor:col, borderColor:'#1a1d27', borderWidth:2, hoverOffset:6 }]},
       options:{ cutout:'72%', plugins:{ legend:{display:false}, tooltip:tip } } });
-    list.innerHTML = d.map((v,i)=>`<div class="vtype-item"><div class="vtype-dot" style="background:${COLORS[i%5]}"></div>
-      <div class="vtype-name">${esc(v.type)}</div><div class="vtype-bar-track"><div class="vtype-bar-fill" style="width:${Math.round(v.count/total*100)}%;background:${COLORS[i%5]}"></div></div>
+    list.innerHTML = d.map((v,i)=>`<div class="vtype-item"><div class="vtype-dot" style="background:${col[i]}"></div>
+      <div class="vtype-name">${esc(v.type)}</div><div class="vtype-bar-track"><div class="vtype-bar-fill" style="width:${Math.round(v.count/total*100)}%;background:${col[i]}"></div></div>
       <div class="vtype-count">${v.count}</div></div>`).join('');
   }
   async function buildTopViolators() {
@@ -564,11 +583,25 @@
         <div class="feed-body"><div style="display:flex;align-items:center;gap:8px"><div class="stu-avatar" style="width:28px;height:28px;font-size:11px;margin:0;background:${c}22;color:${c}">${esc(ini(v.student_name))}</div>
         <div><div class="feed-name">${esc(v.student_name)}</div><div class="feed-type">${esc(v.violation_type)}</div></div></div><div class="feed-time">${ago(v.created_at)}</div></div></div>`; }).join('');
   }
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  async function exportExcel() {
+    const btn = document.getElementById('exBtn'), from = exFrom.value, to = exTo.value;
+    if (from && to && to < from) { alert('Ngày kết thúc phải sau ngày bắt đầu'); return; }
+    btn.disabled = true;
+    try {
+      const res = await apiFetch('/export/violations?' + new URLSearchParams({ ...(from && {from}), ...(to && {to}) }));
+      if (!res.ok) { alert((await res.json().catch(() => ({}))).detail || 'Không xuất được Excel'); return; }
+      const m = /filename="?([^";]+)/.exec(res.headers.get('Content-Disposition') || '');
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(await res.blob()), download: m ? m[1] : 'vi_pham.xlsx' });
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch { alert('Lỗi kết nối server'); }
+    finally { btn.disabled = false; }
+  }
   window.addEventListener('DOMContentLoaded', () => {
+    const now = new Date(), monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    exFrom.value = ymd(monday); exTo.value = ymd(now); // mặc định: tuần này
     if (!isTeacher()) return;
-    const refresh = () => [loadStats, buildLineChart, buildDonutChart, buildTopViolators, buildFeed].forEach(fn => fn().catch(e => console.warn(e)));
-    refresh();
-    setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+    [loadStats, buildLineChart, buildDonutChart, buildTopViolators, buildFeed].forEach(fn => fn().catch(e => console.warn(e)));
     const d = new Date(), days = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
     document.querySelector('.topbar-sub').textContent = `${days[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
   });

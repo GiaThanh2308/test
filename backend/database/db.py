@@ -1,58 +1,49 @@
-"""Kết nối SQLite. (Tuỳ chọn) đồng bộ school.db với Hugging Face Dataset khi đặt HF_TOKEN + HF_DATASET_REPO."""
+"""Kết nối SQLite (chạy local). Dữ liệu nằm ở <dự án>/data/school.db, tách khỏi mã nguồn."""
 import os
 import shutil
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.getenv("DB_PATH", os.path.join(_BASE_DIR, "school.db"))
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(_BASE_DIR))
 
-HF_TOKEN        = os.getenv("HF_TOKEN", "")
-HF_DATASET_REPO = os.getenv("HF_DATASET_REPO", "")  # vd: GiaThanh/KHKT-database
-DB_FILENAME     = "school.db"
+DATA_DIR = os.path.abspath(os.getenv("DATA_DIR", os.path.join(_PROJECT_ROOT, "data")))
+DB_PATH = os.path.abspath(os.getenv("DB_PATH", os.path.join(DATA_DIR, "school.db")))
+_LEGACY_DB_PATH = os.path.join(_BASE_DIR, "school.db")  # vị trí cũ: backend/database/school.db
 
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-def _hf_enabled() -> bool:
-    return bool(HF_TOKEN and HF_DATASET_REPO)
+# Lần chạy đầu sau khi nâng cấp: COPY (không xoá) DB cũ sang vị trí mới để không mất dữ liệu thật.
+if not os.path.exists(DB_PATH) and os.path.exists(_LEGACY_DB_PATH) and _LEGACY_DB_PATH != DB_PATH:
+    shutil.copy2(_LEGACY_DB_PATH, DB_PATH)
+    print(f"📦 Đã chép database cũ {_LEGACY_DB_PATH} -> {DB_PATH} (file cũ được giữ nguyên)")
 
-
-def pull_db():
-    """Tải school.db từ HF Dataset về (chỉ khi đã cấu hình HF)."""
-    if not _hf_enabled():
-        return
-    try:
-        from huggingface_hub import hf_hub_download
-        path = hf_hub_download(repo_id=HF_DATASET_REPO, filename=DB_FILENAME,
-                               repo_type="dataset", token=HF_TOKEN, local_dir=_BASE_DIR)
-        if os.path.abspath(path) != os.path.abspath(DB_PATH):
-            shutil.copy(path, DB_PATH)
-        print(f"✅ Đã tải database từ HF Dataset ({HF_DATASET_REPO})")
-    except ImportError:
-        print("⚠️ Chưa cài huggingface_hub — bỏ qua đồng bộ HF")
-    except Exception as e:
-        print(f"ℹ️ Không tải được DB từ HF (có thể chưa có): {e}")
+engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False, "timeout": 30})
 
 
-def push_db():
-    """Đẩy school.db lên HF Dataset (không làm gì nếu chưa cấu hình HF)."""
-    if not _hf_enabled() or not os.path.exists(DB_PATH):
-        return
-    try:
-        from huggingface_hub import HfApi
-        HfApi(token=HF_TOKEN).upload_file(
-            path_or_fileobj=DB_PATH, path_in_repo=DB_FILENAME,
-            repo_id=HF_DATASET_REPO, repo_type="dataset", commit_message="Auto-sync school.db",
-        )
-        print("✅ Đã đẩy database lên HF Dataset")
-    except ImportError:
-        pass
-    except Exception as e:
-        print(f"⚠️ Không đẩy được DB lên HF: {e}")
+@event.listens_for(engine, "connect")
+def _sqlite_pragmas(dbapi_conn, _record):
+    """WAL: nhiều cờ đỏ ghi cùng lúc không khoá nhau; đọc không chặn ghi."""
+    cur = dbapi_conn.cursor()
+    cur.execute("PRAGMA journal_mode=WAL")
+    cur.execute("PRAGMA synchronous=NORMAL")
+    cur.execute("PRAGMA busy_timeout=30000")
+    cur.close()
 
 
-pull_db()  # chạy lúc import, trước khi mở kết nối
-
-engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def migrate():
+    """Thêm cột mới vào DB đang chạy thật (create_all không tự thêm cột vào bảng có sẵn)."""
+    insp = inspect(engine)
+    if "violations" not in insp.get_table_names():
+        return
+    cols = {c["name"] for c in insp.get_columns("violations")}
+    for name in ("recorded_by", "capture_path"):
+        if name not in cols:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE violations ADD COLUMN {name} VARCHAR"))
+            print(f"🛠️ Đã thêm cột violations.{name}")
