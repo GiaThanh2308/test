@@ -49,6 +49,15 @@
         min-width: 140px;
       }
       #lopFilter:focus { border-color: var(--primary); }
+      .modal-content.wide { max-width: 760px; width: 94vw; max-height: 88vh; overflow-y: auto; }
+      .info-box { background: var(--gray-100); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.6; margin-bottom: 12px; }
+      .res-sum { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+      .res-sum span { background: var(--gray-100); border-radius: 20px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; }
+      .res-sum .warn { background: #fff4e5; color: #b45309; }
+      .res-list { font-size: 12.5px; max-height: 180px; overflow: auto; border: 1px solid var(--gray-200); border-radius: 8px; padding: 8px 10px; margin: 6px 0 12px; line-height: 1.7; }
+      .res-title { font-size: 13px; font-weight: 700; margin-top: 10px; }
+      .row-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+      .save-btn.secondary { background: var(--gray-100); color: var(--gray-800); }
     </style>
   </head>
 
@@ -70,6 +79,12 @@
             <button class="btn-success" onclick="importFromFolders()" id="importBtn">
               <i class="fa-solid fa-rotate"></i> Đồng bộ lại
             </button>
+            <button class="btn-success" onclick="openRoster()">
+              <i class="fa-solid fa-file-excel"></i> Nhập danh sách Excel
+            </button>
+            <button class="btn-success" id="rolloverBtn" onclick="openRollover()" style="display:none">
+              <i class="fa-solid fa-graduation-cap"></i> Chuyển năm học
+            </button>
           </div>
         </header>
 
@@ -88,7 +103,7 @@
             </div>
             <h2 id="faceCount">0</h2>
           </div>
-          <div class="stat-card klass">
+          <div class="stat-card plate">
             <div class="card-header">
               <span>Lớp học</span>
               <i class="fa-solid fa-school"></i>
@@ -171,6 +186,41 @@
           <input type="text" id="phone" placeholder="Ví dụ: 0901234567" />
         </div>
         <button class="save-btn" onclick="saveStudent()">Lưu học sinh</button>
+      </div>
+    </div>
+
+    <!-- Modal nhập danh sách lớp từ Excel -->
+    <div class="modal" id="rosterModal">
+      <div class="modal-content wide">
+        <div class="modal-header">
+          <h2>Nhập danh sách lớp từ Excel</h2>
+          <button class="close-btn" onclick="closeRoster()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="info-box">
+          Dùng để sửa <b>tên có dấu</b> (và cập nhật lớp khi xáo lớp). File .xlsx cần có dòng tiêu đề <b>Họ và tên</b>
+          (hoặc <b>Họ đệm</b> + <b>Tên</b>) và cột <b>Lớp</b>, hoặc mỗi lớp một sheet (tên sheet là tên lớp).
+          Không cần mã học sinh. Mã HS và khuôn mặt giữ nguyên.
+        </div>
+        <div class="form-group"><input type="file" id="rosterFile" accept=".xlsx" onchange="rosterReset()" /></div>
+        <label style="font-size:13px;display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="rosterMove" /> Cho phép đổi lớp theo danh sách (khi học sinh không còn ở lớp cũ)
+        </label>
+        <div class="row-actions">
+          <button class="save-btn" id="rosterPreviewBtn" onclick="runRoster(false)" style="width:auto;padding:10px 20px">Xem trước</button>
+          <button class="save-btn" id="rosterApplyBtn" onclick="runRoster(true)" style="width:auto;padding:10px 20px;display:none">Áp dụng</button>
+        </div>
+        <div id="rosterResult"></div>
+      </div>
+    </div>
+
+    <!-- Modal chuyển năm học (chỉ admin) -->
+    <div class="modal" id="rolloverModal">
+      <div class="modal-content wide">
+        <div class="modal-header">
+          <h2>Chuyển năm học</h2>
+          <button class="close-btn" onclick="closeRollover()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="rolloverBody"><p>Đang tải...</p></div>
       </div>
     </div>
 

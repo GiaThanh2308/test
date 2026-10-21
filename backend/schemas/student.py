@@ -27,12 +27,12 @@ class ViolationCreate(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: str = Field(max_length=20)
+    content: str = Field(max_length=2000)  # trình duyệt cắt 1000 ký tự; server chặn cứng ở đây
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+    messages: list[ChatMessage] = Field(min_length=1, max_length=50)
 
 
 class CreateUserRequest(BaseModel):

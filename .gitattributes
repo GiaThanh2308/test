@@ -434,3 +434,5 @@ resources/known_faces/Khối[[:space:]]12/12A9/MInhChi/Ảnh8.png filter=lfs dif
 *.jfif filter=xet diff=xet merge=xet -text
 frontend/images/sukien.jpg filter=lfs diff=lfs merge=lfs -text
 frontend/images/truong.jfif filter=lfs diff=lfs merge=lfs -text
+data/*.db*
+data/capture/

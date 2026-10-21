@@ -1,4 +1,5 @@
-"""Chế độ camera trên máy tính (cửa sổ OpenCV) — dùng để thử nhanh AI, KHÔNG phải server web.
+"""run_local_cv.py — chế độ camera trên máy tính (cửa sổ OpenCV), dùng để thử nhanh AI, KHÔNG phải server web.
+(Trước đây tên là main.py ở thư mục gốc; đã đổi để khỏi nhầm với backend/main.py.)
 Chạy server web bằng:  uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 Phím: [q]/[ESC] thoát · [a] học thêm người mới trong known_faces
@@ -15,7 +16,7 @@ load_dotenv()
 from core.AdvancedFaceRecognitionSystem import AdvancedFaceRecognitionSystem  # noqa: E402
 
 RESOURCE_DIR = os.getenv("RESOURCE_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources"))
-DB_PATH      = os.path.join(RESOURCE_DIR, "face_database.pkl")
+DB_PATH      = os.path.join(RESOURCE_DIR, "face_database.npz")
 KNOWN_DIR    = os.path.join(RESOURCE_DIR, "known_faces")
 
 

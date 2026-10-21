@@ -21,6 +21,7 @@ class Student(Base):
     face_label   = Column(String, unique=True, nullable=True, default=None)  # khớp tên trong face_database.pkl
     phone        = Column(String, default="")
     created_at   = Column(DateTime(timezone=True), default=utcnow)
+    graduated_at = Column(DateTime(timezone=True), nullable=True, index=True)  # đã ra trường: ẩn nhưng giữ lịch sử
 
     violations = relationship("Violation", back_populates="student", cascade="all, delete")
 
@@ -32,6 +33,14 @@ class User(Base):
     username        = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role            = Column(String, default="teacher")  # admin | teacher | student
+
+
+class AppSetting(Base):
+    """Cặp khoá-giá trị (vd: school_year = "2026-2027")."""
+    __tablename__ = "app_settings"
+
+    key   = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
 
 
 class Violation(Base):

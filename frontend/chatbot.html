@@ -60,6 +60,7 @@
               <input
                 type="text"
                 id="chatInput"
+                maxlength="500"
                 placeholder="Nhập câu hỏi..."
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
               />
@@ -88,6 +89,7 @@
                 <input
                   id="studentSearch"
                   type="text"
+                  maxlength="100"
                   placeholder="Tên / mã HS..."
                   style="border-radius:8px;font-size:13px"
                   onkeydown="if(event.key==='Enter') searchStudent();"

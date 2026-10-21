@@ -54,7 +54,8 @@ Chạy hoàn toàn trên máy của nhà trường (local), có thể công khai
 | Xem danh sách vi phạm, Dashboard | ✅ | ✅ | ❌ |
 | Xuất Excel, xem ảnh chụp | ✅ | ✅ | ❌ |
 | Quản lý học sinh, chatbot | ✅ | ✅ | ❌ |
-| Tạo tài khoản | ✅ | ❌ | ❌ |
+| Tạo tài khoản, Chuyển năm học | ✅ | ❌ | ❌ |
+| Nhập danh sách Excel (sửa tên có dấu) | ✅ | ✅ | ❌ |
 
 Nguyên tắc: **cờ đỏ chỉ được thêm, không được xem lại, sửa hay xoá số liệu.** Quyền được kiểm tra ở cả server lẫn giao diện.
 
@@ -78,7 +79,7 @@ Nguyên tắc: **cờ đỏ chỉ được thêm, không được xem lại, s�
 ```
 khkt/
 ├── backend/
-│   ├── main.py                 # API + phục vụ giao diện
+│   ├── main.py                 # API + phục vụ giao diện (SERVER THẬT)
 │   ├── auth.py                 # JWT, mật khẩu, kiểm tra quyền
 │   ├── face_folders.py         # đọc known_faces, tự cấp mã học sinh
 │   ├── violation_types.py      # DANH SÁCH LỖI + mã lỗi sổ thi đua
@@ -89,7 +90,7 @@ khkt/
 ├── core/                       # AdvancedFaceRecognitionSystem, FaceDatabase, FaissIndex
 ├── frontend/                   # index, dashboard, students, chatbot, login + js/css
 ├── resources/
-│   ├── face_database.pkl       # embedding khuôn mặt
+│   ├── face_database.npz       # embedding khuôn mặt (NumPy, không dùng pickle)
 │   └── known_faces/<khối>/<lớp>/<Họ tên>/*.jpg
 ├── data/                       # TỰ TẠO — dữ liệu chạy thật, KHÔNG nằm trong Git
 │   ├── school.db
@@ -97,7 +98,7 @@ khkt/
 │   └── backups/
 ├── tools/backup_db.py          # sao lưu cơ sở dữ liệu
 ├── create_admin.py             # tạo/đổi mật khẩu tài khoản
-├── main.py                     # chế độ camera OpenCV trên máy (thử nhanh, tuỳ chọn)
+├── run_local_cv.py             # thử nhanh bằng camera OpenCV, KHÔNG phải server (trước đây là main.py)
 ├── requirements.txt
 └── .env.example
 ```
@@ -146,7 +147,7 @@ Lần đầu khởi động, model `buffalo_l` được tải về (vài trăm M
 | `GROQ_MODEL` | `llama-3.3-70b-versatile` | Mô hình Groq. |
 | `ALLOWED_ORIGINS` | localhost:5500/5501 | Chỉ cần khi mở giao diện ở origin khác (Live Server). |
 | `RESOURCE_DIR` | `resources` | Thư mục chứa dữ liệu khuôn mặt. |
-| `FACE_DATABASE_PATH` | `resources/face_database.pkl` | File embedding. |
+| `FACE_DATABASE_PATH` | `resources/face_database.npz` | File embedding. Nếu `.env` cũ còn trỏ tới `.pkl`, hệ thống tự chuyển sang `.npz` cùng tên (một lần, giữ file cũ). |
 | `KNOWN_FACES_DIR` | `resources/known_faces` | Thư mục ảnh học sinh. |
 | `DATA_DIR` | `data` | Thư mục dữ liệu chạy thật. |
 | `DB_PATH` | `data/school.db` | File cơ sở dữ liệu. |
@@ -157,7 +158,8 @@ Lần đầu khởi động, model `buffalo_l` được tải về (vài trăm M
 | `SCHOOL_WEEK1_START` | `2026-09-07` | Ngày bắt đầu **tuần 1** (thứ Hai) để đánh số TUẦN trong Excel. **Hãy sửa theo lịch trường.** |
 | `TZ_OFFSET_HOURS` | `7` | Múi giờ cho thống kê "hôm nay/tuần/tháng". |
 | `AUTO_SYNC_STUDENTS` | `1` | `1` = tự tạo hồ sơ học sinh từ `known_faces` khi khởi động. |
-| `INFER_WORKERS` | `2` | Số lượt nhận diện chạy song song. Tăng nếu CPU mạnh. |
+| `INFER_WORKERS` | tự chọn | Số lượt nhận diện chạy song song. Bỏ trống: 50 nếu có GPU, 2 nếu chỉ CPU. |
+| `CAPTURE_KEEP_DAYS` | `60` | Tự xoá ảnh chụp cũ hơn số ngày này (chạy ngầm mỗi 24 giờ). `0` = không xoá. |
 | `DUPLICATE_WINDOW_MIN` | `5` | Chặn ghi trùng (cùng học sinh + cùng lỗi) trong số phút này. |
 | `ADMIN_PASSWORD` | | Mật khẩu mặc định cho `create_admin.py` (bỏ trống thì script hỏi). |
 
@@ -181,6 +183,22 @@ resources/known_faces/
 - **Mã học sinh tự cấp** theo dạng `HS` + khối + lớp + số thứ tự (xếp theo tên A→Z trong lớp). Ví dụ `HS100301`.
 - Học sinh mới khi server đang chạy: vào trang **Học sinh → Đồng bộ lại** (vừa học khuôn mặt mới vừa tạo hồ sơ).
 - Tên lớp trong thư mục nên **trùng với danh mục lớp của sổ thi đua** (ví dụ `10B3`) để Excel khớp.
+
+### Tên có dấu: nhập danh sách lớp từ Excel
+Tên hiển thị ban đầu lấy từ tên thư mục ảnh nên không có dấu. Để sửa: trang **Học sinh → Nhập danh sách Excel**.
+- File `.xlsx` cần dòng tiêu đề **Họ và tên** (hoặc **Họ đệm** + **Tên**) và cột **Lớp** (hoặc mỗi lớp một sheet, tên sheet là tên lớp). **Không cần mã học sinh.**
+- Hệ thống ghép theo *tên bỏ dấu + lớp*, chỉ sửa tên hiển thị; **mã HS và nhãn khuôn mặt giữ nguyên**.
+- Luôn có bước **Xem trước**. Trường hợp hai em trùng tên không dấu trong cùng lớp sẽ được báo để sửa tay, không tự đoán.
+- Khi xáo lớp, tick "Cho phép đổi lớp" để cập nhật lớp theo danh sách (chỉ áp dụng khi tên đó là duy nhất trong trường).
+
+### Chuyển năm học (admin, mỗi năm một lần)
+Trang **Học sinh → Chuyển năm học** (chỉ admin thấy nút):
+1. Xem trước: lớp 10→11, 11→12 (giữ nguyên chữ và số lớp, ví dụ `10B3` thành `11B3`), lớp 12 ra trường.
+2. Gõ đúng năm học mới (ví dụ `2027-2028`) để xác nhận.
+3. Hệ thống tự sao lưu DB vào `data/backups/before_rollover_*.db`, rồi đổi lớp trong một giao dịch. Không thể chạy lại cho cùng năm học.
+
+Học sinh ra trường được **ẩn** khỏi nhận diện, danh sách, chatbot và thống kê; **lịch sử vi phạm vẫn giữ** và vẫn xuất được qua Excel. Mã HS giữ nguyên khi lên lớp.
+Sau khi chuyển: thêm ảnh khối 10 mới vào `known_faces` rồi bấm **Đồng bộ lại**. Nếu khối mới có học sinh trùng tên không dấu **và** trùng tên lớp với học sinh cũ (ví dụ `Nguyen Van A` ở `10B3`), nhãn khuôn mặt sẽ trùng; hãy đặt tên thư mục khác đi (ví dụ `Nguyen Van A 2`).
 
 ---
 
@@ -269,7 +287,7 @@ data/capture/2026-10-20/065503_Nguyen_Van_A_10B3_ca1.jpg
 Ảnh có dải chữ ở đáy: **ngày giờ**, họ tên, lớp, tài khoản ca trực. Khi cờ đỏ bấm **Lưu vi phạm**, ảnh được gắn vào bản ghi (`capture_path`) để làm bằng chứng.
 
 - Giáo viên xem ảnh qua `GET /captures/<ngày>/<tên file>` (cần đăng nhập).
-- Dung lượng khoảng 50–150 KB/ảnh. Hãy dọn thư mục `capture` theo định kỳ (ví dụ xoá thư mục ngày của học kỳ trước) hoặc đưa vào lịch sao lưu.
+- Dung lượng khoảng 50–150 KB/ảnh. Server **tự xoá ảnh cũ hơn `CAPTURE_KEEP_DAYS` ngày (mặc định 60)** bằng một tác vụ chạy ngầm (lúc khởi động và mỗi 24 giờ), đồng thời gỡ liên kết ảnh trong bản ghi vi phạm tương ứng. Muốn giữ ảnh lâu hơn thì tăng giá trị này hoặc sao lưu thư mục `capture` trước; đặt `0` để tắt tự xoá.
 - Nếu chữ tiếng Việt bị lỗi, đặt `CAPTURE_FONT` trỏ tới font `.ttf` hỗ trợ tiếng Việt.
 
 ---
@@ -314,8 +332,25 @@ Cài thành service: `cloudflared service install`. Camera trên điện thoại
 
 ### Hiệu năng
 - Mô hình chạy CPU. Với ~40 cờ đỏ dùng cùng lúc, các lượt quét sẽ xếp hàng (tối đa 25 giây rồi báo "máy chủ đang bận").
-- Nếu máy mạnh, tăng `INFER_WORKERS` (4–6) và theo dõi mức dùng CPU/RAM; nếu quét chậm, giữ ở 2.
+- **Có GPU NVIDIA:** cài `onnxruntime-gpu` (xem mục GPU bên dưới), đặt `INFER_WORKERS=50`. Khi khởi động, log in ra `InsightFace đang chạy bằng: CUDAExecutionProvider, ...`; nếu chỉ thấy `CPUExecutionProvider` nghĩa là GPU chưa được dùng.
+- Chỉ có CPU: giữ `INFER_WORKERS=2`; tăng lên không làm nhanh hơn mà còn làm chậm từng lượt.
+- Nhiều lượt chạy song song vẫn dùng chung một GPU nên tổng tốc độ có giới hạn; `INFER_WORKERS` chỉ bỏ hàng đợi, không tăng sức mạnh GPU.
 - Hãy **kiểm thử tải** bằng số thiết bị thật vào giờ cao điểm trước khi đưa vào sử dụng.
+
+### GPU (NVIDIA)
+1. Cài driver NVIDIA mới và **CUDA + cuDNN** đúng phiên bản mà `onnxruntime-gpu` yêu cầu (xem bảng tương thích trên trang onnxruntime).
+2. Trong môi trường Python: `pip uninstall onnxruntime onnxruntime-gpu -y` rồi `pip install onnxruntime-gpu` (hai gói không được cài chung).
+3. Đặt `INFER_WORKERS=50` trong `.env`, khởi động lại và kiểm tra log. Endpoint `/debug` (admin) cũng trả về `providers`.
+4. Nếu CUDA lỗi hoặc thiếu thư viện, hệ thống tự rơi về CPU và vẫn chạy.
+
+### Bảo mật dữ liệu khuôn mặt và chatbot
+- Embedding lưu bằng `.npz` (mảng NumPy, đọc với `allow_pickle=False`), không còn dùng `pickle` nên không có rủi ro chạy mã từ file dữ liệu. File được ghi qua file tạm rồi đổi tên.
+- Lần chạy đầu sau khi nâng cấp, `face_database.pkl` cũ được tự chuyển sang `.npz` (file cũ giữ nguyên, bạn có thể xoá sau khi kiểm tra nhận diện).
+- Chatbot chỉ **đọc** dữ liệu, không có quyền ghi/sửa vi phạm. Đầu vào được làm sạch (cắt độ dài 500/1000 ký tự, bỏ ký tự ẩn, vô hiệu dòng giả danh `system:`), lịch sử giới hạn 10 tin, ghi chú vi phạm đưa vào AI bị ép thành một dòng ngắn, và System Prompt yêu cầu từ chối mọi lệnh giả mạo.
+- Mã học sinh được cấp dưới khoá, kết hợp ràng buộc `UNIQUE` của cơ sở dữ liệu và tự thử lại, nên hai người tạo cùng lúc không bao giờ trùng mã.
+
+### Tên lớp và mã học sinh
+Mã học sinh luôn là `HS` + khối (2 số) + mã lớp (2 số) + STT. Mã lớp: lớp đánh số (`10A1`, `12B01`, `10 A 3`) lấy số cuối; `10A` lấy thứ tự chữ cái; lớp đặt tên bằng chữ (`10 Tin`, `11CT`, `10 Anh 1`) được gán mã 50–99 cố định theo tên lớp, không trùng với lớp đánh số.
 
 ---
 
@@ -374,7 +409,7 @@ Server tự sinh tài liệu tương tác tại `/docs` (Swagger). Các endpoint
 | Không bật được camera trên điện thoại | Phải truy cập bằng **HTTPS** (qua Cloudflare), cấp quyền camera cho trình duyệt. |
 | "Cờ đỏ bị 403 khi lưu vi phạm" | Đang dùng bản cũ. Hãy cập nhật `backend/main.py` bản mới. |
 | "Không nhận diện được" nhiều | Ảnh mờ/thiếu sáng/mặt quá nhỏ; thêm ảnh mẫu đa dạng cho học sinh; chụp gần và đủ sáng. |
-| "Chưa có hồ sơ học sinh" | Khuôn mặt có trong `face_database.pkl` nhưng chưa có học sinh; vào **Học sinh → Đồng bộ lại**. |
+| "Chưa có hồ sơ học sinh" | Khuôn mặt có trong `face_database.npz` nhưng chưa có học sinh; vào **Học sinh → Đồng bộ lại**. |
 | Báo "Máy chủ đang bận" | Nhiều người quét cùng lúc; quét lại sau vài giây hoặc tăng `INFER_WORKERS`. |
 | Chữ trên ảnh chụp bị ô vuông | Đặt `CAPTURE_FONT` tới font có tiếng Việt. |
 | Excel cột TUẦN sai | Chỉnh `SCHOOL_WEEK1_START` cho đúng thứ Hai của tuần 1. |
@@ -382,7 +417,7 @@ Server tự sinh tài liệu tương tác tại `/docs` (Swagger). Các endpoint
 | Ảnh khuôn mặt hiện file con trỏ Git LFS | Repo còn dùng LFS: chạy `git lfs pull` hoặc chép file thật vào `resources/`. |
 | Lỗi cài `insightface` trên Windows | Cài **Microsoft C++ Build Tools**, rồi `pip install insightface` lại. |
 
-Chế độ thử nhanh bằng cửa sổ OpenCV (không cần server): `python main.py` (phím `q`/`ESC` thoát, `a` học thêm người mới).
+Chế độ thử nhanh bằng cửa sổ OpenCV (không cần server): `python run_local_cv.py` (phím `q`/`ESC` thoát, `a` học thêm người mới).
 
 ---
 

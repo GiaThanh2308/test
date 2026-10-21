@@ -11,6 +11,7 @@ VD: lớp 12B01, STT 22  →  HS120122
 import os
 import re
 import unicodedata
+import zlib
 from typing import Optional
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
@@ -64,17 +65,29 @@ class FaceFolderIndex:
         return self.by_folder.get(normalize(label))
 
 
-# ── Mã học sinh: HS + khối(2) + lớp(2) + STT ────────────────────────────────
-CLASS_RE = re.compile(r"^\s*(\d{1,2})\s*[^\d\s]*\s*(\d{1,2})\s*$")  # 12B01, 10A1, 11 A 03...
+# ── Mã học sinh: HS + khối(2) + mã lớp(2) + STT ─────────────────────────────
+# Mã luôn chỉ gồm CHỮ SỐ (chatbot tra cứu theo dạng HS\d{6,}). Hỗ trợ nhiều kiểu tên lớp:
+#   10A1, 12B01, 10 A 3  → mã lớp = số cuối                    (HS1001, HS1201, HS1003)
+#   10A                  → mã lớp = thứ tự chữ cái (A=01)       (HS1001)
+#   10 Tin, 11CT, 10 Anh 1 → mã lớp 50–99 tính ổn định từ chữ   (HS1050…; không đụng 01–49 của lớp đánh số)
+_CLASS_HEAD = re.compile(r"^\s*(\d{1,2})(.*)$")
 
 
 def class_prefix(class_name: Optional[str]) -> str:
-    """'12B01' → 'HS1201', '10A3' → 'HS1003'. Tên lớp lạ → HS + ký tự của tên lớp."""
-    m = CLASS_RE.match(class_name or "")
-    if m:
-        return f"HS{int(m.group(1)):02d}{int(m.group(2)):02d}"
-    tail = re.sub(r"[^0-9A-Z]", "", plain_text(class_name).upper())
-    return "HS" + (tail or "00")
+    """Tiền tố mã cho một lớp: 'HS' + khối(2 số) + mã lớp(2 số). Xác định, không phụ thuộc dữ liệu."""
+    m = _CLASS_HEAD.match(class_name or "")
+    khoi, rest = (int(m.group(1)), m.group(2)) if m else (0, class_name or "")
+    letters = re.sub(r"[^a-z]", "", plain_text(rest))
+    digits = re.findall(r"\d+", rest)
+    number = int(digits[-1]) if digits else None
+
+    if len(letters) <= 1 and number is not None:      # 10A1, 12B01, 10 A 3
+        no = number % 100
+    elif len(letters) == 1:                           # 10A
+        no = ord(letters) - 96
+    else:                                             # 10 Tin, 11CT, 10 Anh 1, "Chuyên Tin"
+        no = 50 + (zlib.crc32(letters.encode()) + (number or 0)) % 50 if letters else 0
+    return f"HS{khoi:02d}{no:02d}"
 
 
 def plain_text(text: Optional[str]) -> str:
@@ -115,11 +128,10 @@ class CodeAllocator:
         return code
 
 
-def sync_students(db, Student, index: FaceFolderIndex, ignored=()) -> dict:
+def sync_students(db, Student, index: FaceFolderIndex) -> dict:
     """Thêm học sinh còn thiếu và đổi mã AUTO_xxx cũ sang mã mới, bằng MỘT transaction.
     Chạy lại nhiều lần vẫn an toàn."""
     all_students = db.query(Student).all()
-    ignored = set(ignored or ())  # nhãn của học sinh đã bị xóa
     labels = {s.face_label for s in all_students if s.face_label}
     pairs = {(s.full_name, s.class_name) for s in all_students}
     allocator = CodeAllocator(s.student_code for s in all_students)
@@ -131,9 +143,6 @@ def sync_students(db, Student, index: FaceFolderIndex, ignored=()) -> dict:
             pending.append((s.class_name, s.full_name, s))
     for name, cls in index.students:
         label = f"{name}_{cls}"
-        if label in ignored:
-            skipped.append(f"{name} ({cls}) — đã xóa trước đó, bỏ qua")
-            continue
         if label in labels or (name, cls) in pairs:
             skipped.append(f"{name} ({cls}) — đã có hồ sơ")
             continue

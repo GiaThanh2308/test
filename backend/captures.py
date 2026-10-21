@@ -1,8 +1,9 @@
 """Lưu ảnh chụp tự động, đóng dấu ngày giờ (+ tên, lớp) lên ảnh. Thư mục: data/capture/<yyyy-mm-dd>/."""
 import os
 import re
+import shutil
 import unicodedata
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 import cv2
@@ -73,3 +74,26 @@ def save_capture(capture_root: str, img_bgr: np.ndarray, when: datetime, who: Op
         path = os.path.join(folder, fname.replace(".jpg", f"_{n}.jpg"))
     buf.tofile(path)
     return f"{day}/{os.path.basename(path)}"
+
+
+_DAY_DIR = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def purge_old(capture_root: str, keep_days: int, today: date) -> list[str]:
+    """Xoá các thư mục ngày (yyyy-mm-dd) cũ hơn keep_days ngày. Chỉ đụng tới thư mục đúng định dạng ngày."""
+    if keep_days <= 0 or not os.path.isdir(capture_root):
+        return []
+    cutoff = today - timedelta(days=keep_days)
+    removed = []
+    for name in sorted(os.listdir(capture_root)):
+        path = os.path.join(capture_root, name)
+        if not (_DAY_DIR.match(name) and os.path.isdir(path)):
+            continue
+        try:
+            day = date.fromisoformat(name)
+        except ValueError:
+            continue
+        if day < cutoff:
+            shutil.rmtree(path, ignore_errors=True)
+            removed.append(name)
+    return removed

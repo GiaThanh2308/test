@@ -17,5 +17,8 @@ python-jose[cryptography]
 opencv-python
 numpy
 insightface
-onnxruntime
+# GPU NVIDIA: dùng onnxruntime-gpu THAY CHO onnxruntime (không cài chung hai gói).
+# Cần driver NVIDIA + CUDA/cuDNN đúng phiên bản onnxruntime-gpu (xem README mục GPU).
+# Máy không có GPU: thay dòng dưới bằng "onnxruntime"; hệ thống vẫn chạy bằng CPU.
+onnxruntime-gpu
 faiss-cpu

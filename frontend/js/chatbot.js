@@ -5,23 +5,16 @@ requireTeacher();
 renderNav("chatbot");
 
 const chatHistory = []; // lịch sử hội thoại gửi lên backend
-let sending = false;
-
-/** Khóa ô nhập + các nút gửi trong lúc chờ trả lời để không gửi chồng nhiều câu. */
-function setBusy(on) {
-  sending = on;
-  document.getElementById("sendBtn").disabled = on;
-  document.getElementById("chatInput").disabled = on;
-  document.querySelectorAll(".shortcut-btn").forEach((b) => (b.disabled = on));
-}
+const MAX_CHAT_CHARS = 500;    // độ dài tối đa một câu hỏi (server còn giới hạn lại)
+const MAX_SENT_MESSAGES = 10;  // chỉ gửi 10 tin gần nhất
+const MAX_SENT_CHARS = 1500;   // cắt từng tin trước khi gửi, tránh vượt giới hạn của server
 const GREETING_HTML = document.getElementById("chatMessages").innerHTML; // lời chào có sẵn trong HTML, dùng lại khi xoá hội thoại
 
 async function sendMessage() {
   const input   = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
-  const text    = input.value.trim();
-  if (!text || sending) return;
-  setBusy(true);
+  const text    = input.value.trim().slice(0, MAX_CHAT_CHARS);
+  if (!text) return;
 
   appendMsg(text, "user");
   chatHistory.push({ role: "user", content: text });
@@ -33,7 +26,8 @@ async function sendMessage() {
   try {
     const res = await apiFetch("/chatbot", {
       method: "POST",
-      body:   JSON.stringify({ messages: chatHistory }),
+      body:   JSON.stringify({ messages: chatHistory.slice(-MAX_SENT_MESSAGES)
+        .map(m => ({ role: m.role, content: String(m.content).slice(0, MAX_SENT_CHARS) })) }),
     });
 
     typingEl.remove();
@@ -55,7 +49,7 @@ async function sendMessage() {
     appendMsg("❌ Không kết nối được server", "bot");
     chatHistory.pop();
   } finally {
-    setBusy(false);
+    sendBtn.disabled = false;
     input.focus();
   }
 }
@@ -146,7 +140,6 @@ function clearChat() {
 }
 
 function quickAsk(text) {
-  if (sending) return;
   document.getElementById("chatInput").value = text;
   sendMessage();
 }
@@ -155,7 +148,7 @@ function quickAsk(text) {
 async function searchStudent() {
   const input = document.getElementById("studentSearch");
   const q = input.value.trim();
-  if (!q || sending) return;
+  if (!q) return;
 
   appendMsg(`Tra cứu học sinh: ${q}`, "user");
   const typingEl = appendTyping();

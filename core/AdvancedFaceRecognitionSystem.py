@@ -6,7 +6,7 @@ import numpy as np
 from insightface.app import FaceAnalysis
 
 from core.FaceDatabase import FaceDatabase
-from core.FaissIndex import FaissIndex
+from core.FaissIndex import FaissIndex, l2_normalize
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
@@ -14,11 +14,6 @@ IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 def _read_image(path: str):
     """Đọc ảnh kể cả đường dẫn có dấu tiếng Việt (cv2.imread không đọc được trên Windows)."""
     return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
-
-
-def _by_size(faces):
-    """Khuôn mặt to nhất (gần camera nhất) đứng đầu."""
-    return sorted(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]), reverse=True)
 
 
 def iter_people(main_dir: str):
@@ -34,11 +29,23 @@ def iter_people(main_dir: str):
 
 
 class AdvancedFaceRecognitionSystem:
-    def __init__(self, database_path: str = "face_database.pkl"):
+    def __init__(self, database_path: str = "face_database.npz"):
         self.database    = FaceDatabase(database_path=database_path)
-        self.app         = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+        # Ưu tiên GPU (cần onnxruntime-gpu + CUDA/cuDNN); không có thì tự rơi về CPU
+        self.app         = FaceAnalysis(name="buffalo_l", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
         self.app.prepare(ctx_id=0, det_size=(480, 480))
+        self.providers   = self._active_providers()
+        print(f"🧠 InsightFace đang chạy bằng: {', '.join(self.providers) or 'không rõ'}")
         self.faiss_index = FaissIndex(dim=512)
+
+    def _active_providers(self) -> list[str]:
+        """Provider thực sự được dùng (kiểm tra GPU có hoạt động không)."""
+        used = []
+        for model in getattr(self.app, "models", {}).values():
+            for p in getattr(getattr(model, "session", None), "get_providers", lambda: [])():
+                if p not in used:
+                    used.append(p)
+        return used
 
     # ── Index ────────────────────────────────────────────────
     def build_ann_index(self):
@@ -68,8 +75,6 @@ class AdvancedFaceRecognitionSystem:
             faces = self.app.get(img)
             if not faces:
                 print(f"⚠️ Không phát hiện khuôn mặt: {path}")
-            elif len(faces) > 1:
-                print(f"ℹ️ Ảnh có {len(faces)} khuôn mặt, lấy tất cả: {path}")
             encs.extend(f.embedding for f in faces)
         return encs
 
@@ -112,13 +117,11 @@ class AdvancedFaceRecognitionSystem:
 
     # ── Nhận diện ────────────────────────────────────────────
     def _match(self, face):
-        emb = face.embedding.copy()
-        emb /= np.linalg.norm(emb) + 1e-10
-        return self.faiss_index.search(emb)
+        return self.faiss_index.search(l2_normalize(face.embedding))  # cùng một hàm chuẩn hoá với lúc dựng index
 
     def recognize_image(self, img) -> list[dict]:
         results = []
-        for face in _by_size(self.app.get(img)):
+        for face in self.app.get(img):
             name, score = self._match(face)
             results.append({"name": name, "score": float(score)})
         return results

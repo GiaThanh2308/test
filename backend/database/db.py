@@ -39,11 +39,15 @@ Base = declarative_base()
 def migrate():
     """Thêm cột mới vào DB đang chạy thật (create_all không tự thêm cột vào bảng có sẵn)."""
     insp = inspect(engine)
-    if "violations" not in insp.get_table_names():
-        return
-    cols = {c["name"] for c in insp.get_columns("violations")}
-    for name in ("recorded_by", "capture_path"):
-        if name not in cols:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE violations ADD COLUMN {name} VARCHAR"))
-            print(f"🛠️ Đã thêm cột violations.{name}")
+    tables = insp.get_table_names()
+    wanted = {"violations": (("recorded_by", "VARCHAR"), ("capture_path", "VARCHAR")),
+              "students": (("graduated_at", "DATETIME"),)}
+    for table, columns in wanted.items():
+        if table not in tables:
+            continue
+        have = {c["name"] for c in insp.get_columns(table)}
+        for name, sql_type in columns:
+            if name not in have:
+                with engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}"))
+                print(f"🛠️ Đã thêm cột {table}.{name}")
